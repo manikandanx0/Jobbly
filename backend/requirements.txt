@@ -1,7 +1,26 @@
-flask
-fastapi
-sqlalchemy
-psycopg2
-sentence-transformers
-spacy
-faiss-cpu
+# Web Framework
+flask==3.0.0
+
+# Database
+sqlalchemy==2.0.23
+psycopg2==2.9.9
+
+# Supabase client
+supabase==2.3.4
+
+# ML and NLP
+sentence-transformers==2.2.2
+spacy==3.7.2
+faiss-cpu==1.7.4
+
+# Data validation and serialization
+pydantic[email]==2.5.3
+
+# Environment variables
+python-dotenv==1.0.0
+
+# CORS support
+flask-cors==4.0.0
+
+# Production server
+gunicorn==21.2.0
