@@ -1,0 +1,7 @@
+flask
+fastapi
+sqlalchemy
+psycopg2
+sentence-transformers
+spacy
+faiss-cpu
