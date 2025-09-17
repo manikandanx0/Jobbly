@@ -1,0 +1,164 @@
+{
+    "design_system": {
+      "colors": {
+        "primary": "#00A9E0",
+        "secondary": "#FFFFFF",
+        "text_primary": "#333333",
+        "text_secondary": "#666666",
+        "background": "#F1F9FF",
+        "border": "#E0E0E0",
+        "highlight": "#0078D4"
+      },
+      "typography": {
+        "font_family": "Arial, sans-serif",
+        "font_sizes": {
+          "h1": "36px",
+          "h2": "28px",
+          "h3": "22px",
+          "body": "16px",
+          "caption": "14px"
+        },
+        "font_weights": {
+          "light": "300",
+          "regular": "400",
+          "bold": "700"
+        }
+      },
+      "layout": {
+        "container": {
+          "max_width": "1200px",
+          "padding": "16px",
+          "margin": "auto"
+        },
+        "header": {
+          "height": "80px",
+          "background_color": "#FFFFFF",
+          "box_shadow": "0 4px 8px rgba(0, 0, 0, 0.1)"
+        },
+        "footer": {
+          "height": "60px",
+          "background_color": "#FFFFFF",
+          "box_shadow": "0 -4px 8px rgba(0, 0, 0, 0.1)"
+        }
+      },
+      "slider": {
+        "type": "manual_automatic",
+        "slide_count": 4,
+        "features": [
+          {
+            "title": "AI Internship Recommendation",
+            "description": "Get personalized internship recommendations based on your skills and preferences.",
+            "image_url": "path_to_image_for_ai_internship"
+          },
+          {
+            "title": "Freelancing Opportunities",
+            "description": "Find freelance gigs that match your expertise and availability.",
+            "image_url": "path_to_image_for_freelancing"
+          },
+          {
+            "title": "Internships for Blue-Collar Workers",
+            "description": "Explore internship options specifically designed for blue-collar laborers.",
+            "image_url": "path_to_image_for_blue_collar_internships"
+          },
+          {
+            "title": "Fake Certificate Detection",
+            "description": "Learn how to detect and avoid fake certificates in your career journey.",
+            "image_url": "path_to_image_for_fake_certificate_detection"
+          }
+        ],
+        "navigation": {
+          "arrows": {
+            "prev": "left-arrow-icon",
+            "next": "right-arrow-icon"
+          },
+          "dots": {
+            "active_color": "#0078D4",
+            "inactive_color": "#E0E0E0"
+          }
+        }
+      },
+      "login_page": {
+        "background_color": "#F1F9FF",
+        "card": {
+          "background_color": "#FFFFFF",
+          "border_radius": "8px",
+          "padding": "20px",
+          "box_shadow": "0 2px 10px rgba(0, 0, 0, 0.1)"
+        },
+        "fields": [
+          {
+            "type": "email",
+            "label": "PSID/Mobile No.",
+            "placeholder": "Enter your PSID or Mobile Number",
+            "input_type": "text"
+          },
+          {
+            "type": "password",
+            "label": "Password",
+            "placeholder": "Enter your password",
+            "input_type": "password",
+            "eye_icon": "visible_password_icon"
+          }
+        ],
+        "cta_button": {
+          "text": "Login",
+          "background_color": "#00A9E0",
+          "text_color": "#FFFFFF",
+          "border_radius": "4px",
+          "padding": "12px 20px"
+        },
+        "forgot_password_link": {
+          "text": "Forgot Password?",
+          "text_color": "#0078D4"
+        },
+        "signup_link": {
+          "text": "Don't have an account? Sign Up",
+          "text_color": "#0078D4",
+          "action": "navigate_to_signup_page"
+        }
+      },
+      "signup_page": {
+        "background_color": "#F1F9FF",
+        "card": {
+          "background_color": "#FFFFFF",
+          "border_radius": "8px",
+          "padding": "20px",
+          "box_shadow": "0 2px 10px rgba(0, 0, 0, 0.1)"
+        },
+        "fields": [
+          {
+            "type": "text",
+            "label": "Username",
+            "placeholder": "Enter your username",
+            "input_type": "text"
+          },
+          {
+            "type": "email",
+            "label": "Email",
+            "placeholder": "Enter your email",
+            "input_type": "email"
+          },
+          {
+            "type": "password",
+            "label": "Password",
+            "placeholder": "Enter your password",
+            "input_type": "password"
+          },
+          {
+            "type": "password",
+            "label": "Retype Password",
+            "placeholder": "Retype your password",
+            "input_type": "password"
+          }
+        ],
+        "cta_button": {
+          "text": "Sign Up",
+          "background_color": "#00A9E0",
+          "text_color": "#FFFFFF",
+          "border_radius": "4px",
+          "padding": "12px 20px"
+        }
+      }
+    }
+  }
+  

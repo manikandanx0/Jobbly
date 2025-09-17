@@ -5,11 +5,19 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { ToastProvider } from '@/components/Toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { useEffect } from 'react';
+import { isLoggedIn } from '@/utils/authStub';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
+  useEffect(()=>{
+    const isAuthRoute = router.pathname.startsWith('/auth/');
+    if (!isAuthRoute && !isLoggedIn()){
+      router.replace('/auth/login');
+    }
+  }, [router.pathname]);
   return (
     <I18nProvider>
       <ToastProvider>

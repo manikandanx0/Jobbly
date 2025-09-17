@@ -2,12 +2,27 @@ import Link from 'next/link';
 import MultiLangSwitcher from '@/components/MultiLangSwitcher';
 import { useI18n } from '@/utils/i18n';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
-import { ArrowLeftIcon, HomeIcon, ToolboxIcon, PencilIcon, CheckBadgeIcon, SearchIcon } from '@/components/icons';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeftIcon, SearchIcon } from '@/components/icons';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Navbar({ onMenuClick }) {
   const { t } = useI18n();
   const router = useRouter();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const notifRef = useRef(null);
+  const profileRef = useRef(null);
+
+  useEffect(()=>{
+    function onDoc(e){
+      if (!notifRef.current || !profileRef.current) return;
+      if (!notifRef.current.contains(e.target)) setShowNotifications(false);
+      if (!profileRef.current.contains(e.target)) setShowProfile(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    return ()=> document.removeEventListener('mousedown', onDoc);
+  }, []);
   return (
     <header className="w-full header-glass text-textPrimary sticky top-0 z-40">
       <div className="w-full px-6 md:px-10 lg:px-14 py-3 flex items-center justify-between">
@@ -49,20 +64,29 @@ export default function Navbar({ onMenuClick }) {
               </motion.span>
             </motion.div>
           </div>
-          <motion.div whileHover={{ y: -1 }}>
-            <Link href="/" className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary cursor-pointer" aria-label="Home"><HomeIcon /></Link>
-          </motion.div>
-          <motion.div whileHover={{ y: -1 }}>
-            <Link href="/freelance" className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary cursor-pointer" aria-label="Freelance"><ToolboxIcon /></Link>
-          </motion.div>
-          <motion.div whileHover={{ y: -1 }}>
-            <Link href="/applications" className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary cursor-pointer" aria-label="Applications"><CheckBadgeIcon /></Link>
-          </motion.div>
-          <motion.div whileHover={{ y: -1 }}>
-            <Link href="/recruiter/dashboard" className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary cursor-pointer" aria-label="Recruiter"><PencilIcon /></Link>
-          </motion.div>
-          <button className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary" aria-label="Notifications">🔔</button>
-          <button className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary" aria-label="Profile">👤</button>
+          <div className="relative" ref={notifRef}>
+            <button className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary" aria-label="Notifications" onClick={()=> setShowNotifications((v)=>!v)}>🔔</button>
+            <AnimatePresence>
+            {showNotifications && (
+              <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity:1, y: 4, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.12 }} className="absolute right-0 mt-1 w-72 rounded-xl border border-border bg-white dark:bg-gray-900 shadow-xl p-3">
+                <div className="text-sm font-medium mb-2">Notifications</div>
+                <div className="text-sm text-textSecondary">No new notifications</div>
+              </motion.div>
+            )}
+            </AnimatePresence>
+          </div>
+          <div className="relative" ref={profileRef}>
+            <button className="w-10 h-10 grid place-items-center rounded-lg hover:bg-secondary" aria-label="Profile" onClick={()=> setShowProfile((v)=>!v)}>👤</button>
+            <AnimatePresence>
+            {showProfile && (
+              <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity:1, y: 4, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} transition={{ duration: 0.12 }} className="absolute right-0 mt-1 w-56 rounded-xl border border-border bg-white dark:bg-gray-900 shadow-xl overflow-hidden">
+                <button className="w-full text-left px-3 py-2 text-sm hover:bg-secondary" onClick={()=> { setShowProfile(false); router.push('/portfolio'); }}>Profile</button>
+                <button className="w-full text-left px-3 py-2 text-sm hover:bg-secondary" onClick={()=> { setShowProfile(false); router.push('/auth/login'); }}>Login</button>
+                <button className="w-full text-left px-3 py-2 text-sm hover:bg-secondary" onClick={()=> { setShowProfile(false); router.push('/auth/signup'); }}>Sign up</button>
+              </motion.div>
+            )}
+            </AnimatePresence>
+          </div>
           <MultiLangSwitcher />
         </nav>
       </div>

@@ -40,6 +40,10 @@ p, .text-body { @apply text-base font-normal leading-relaxed; }
   .header-glass { @apply bg-white/70 backdrop-blur-md border-b border-white/50; }
   .card-elevated { @apply shadow-md; }
   .card-outlined { @apply border border-gray-300 shadow-none; }
+  .scrollbar::-webkit-scrollbar { height: 10px; }
+  .scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); border-radius: 9999px; }
+  .scrollbar::-webkit-scrollbar-thumb { background: rgba(108,0,255,0.35); border-radius: 9999px; }
+  .scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(108,0,255,0.55); }
 }
 
 .shadow-subtle {

@@ -40,5 +40,4 @@ def create_app():
     
     return app
 
-# For development
-app = create_app()
+# Note: Do NOT instantiate the Flask app at import time to avoid circular imports.

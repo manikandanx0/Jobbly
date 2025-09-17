@@ -5,6 +5,7 @@ from app.models.user import UserCreate, UserUpdate
 from app.core.services import user_service
 from pydantic import ValidationError
 import logging
+from app.core.database import get_supabase_client
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
@@ -33,6 +34,22 @@ def create_user():
         logging.error(f"Error creating user: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@users_bp.route('/signup', methods=['POST'])
+def signup_user():
+    try:
+        data = request.get_json() or {}
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name')
+        if not email or not password:
+            return jsonify({'error': 'Email and password required'}), 400
+
+        client = get_supabase_client()
+        res = client.auth.sign_up({ 'email': email, 'password': password, 'options': { 'data': { 'full_name': name } } })
+        return jsonify({ 'user': { 'id': res.user.id if res.user else None, 'email': email } }), 201
+    except Exception as e:
+        logging.error(f"Signup error: {str(e)}")
+        return jsonify({'error': 'Signup failed'}), 500
 @users_bp.route('/<user_id>', methods=['GET'])
 def get_user(user_id):
     """Get user by ID"""
@@ -113,3 +130,49 @@ def search_users():
     except Exception as e:
         logging.error(f"Error searching users: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+@users_bp.route('/login', methods=['POST'])
+def login_user():
+    try:
+        data = request.get_json() or {}
+        email = data.get('email')
+        password = data.get('password')
+        if not email or not password:
+            return jsonify({'error': 'Email and password required'}), 400
+
+        client = get_supabase_client()
+        result = client.auth.sign_in_with_password({
+            'email': email,
+            'password': password,
+        })
+        session = result.session
+        if not session:
+            return jsonify({'error': 'Invalid credentials'}), 401
+
+        return jsonify({
+            'access_token': session.access_token,
+            'refresh_token': session.refresh_token,
+            'user': {
+                'id': result.user.id,
+                'email': result.user.email,
+            }
+        }), 200
+    except Exception as e:
+        logging.error(f"Login error: {str(e)}")
+        return jsonify({'error': 'Login failed'}), 500
+
+@users_bp.route('/me', methods=['GET'])
+def get_me():
+    try:
+        auth = request.headers.get('Authorization', '')
+        token = auth.replace('Bearer ', '') if auth.startswith('Bearer ') else None
+        if not token:
+            return jsonify({'error': 'Unauthorized'}), 401
+        client = get_supabase_client()
+        user_resp = client.auth.get_user(token)
+        if not user_resp.user:
+            return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'user': {'id': user_resp.user.id, 'email': user_resp.user.email}}), 200
+    except Exception as e:
+        logging.error(f"/me error: {str(e)}")
+        return jsonify({'error': 'Failed to fetch user'}), 500

@@ -13,24 +13,23 @@ SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
 
-# Validate required environment variables
-if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-    raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file")
-
-print(f"Connecting to Supabase at: {SUPABASE_URL}")
-
-# Create the main client
-supabase_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+_supabase_client: Client | None = None
 
 def get_supabase_client() -> Client:
-    """Get the standard Supabase client"""
-    return supabase_client
+    """Get the standard Supabase client. Lazily initialize on first use."""
+    global _supabase_client
+    if _supabase_client is None:
+        if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+            raise ValueError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file")
+        print(f"Connecting to Supabase at: {SUPABASE_URL}")
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    return _supabase_client
 
 def get_admin_client() -> Client:
-    """Get the admin Supabase client (creates when needed)"""
+    """Get the admin Supabase client (creates when needed)."""
     if not SUPABASE_SERVICE_KEY:
         print("Warning: No service key found, using anon key for admin operations")
-        return supabase_client
-    
-    # Create admin client only when called
+        return get_supabase_client()
+    if not SUPABASE_URL:
+        raise ValueError("SUPABASE_URL must be set in .env file")
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)

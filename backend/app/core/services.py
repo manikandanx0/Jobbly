@@ -8,9 +8,15 @@ class UserService:
     """Service layer for user operations"""
     
     def __init__(self):
-        self.client = get_supabase_client()
-        # Only initialize admin client when needed
+        # Defer Supabase client creation until first use to avoid import-time failures
+        self._client = None
         self._admin_client = None
+    
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = get_supabase_client()
+        return self._client
     
     @property
     def admin_client(self):
@@ -114,7 +120,13 @@ class InternshipService:
     """Service layer for internship operations"""
     
     def __init__(self):
-        self.client = get_supabase_client()
+        self._client = None
+    
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = get_supabase_client()
+        return self._client
     
     def create_internship(self, internship_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new internship posting"""
@@ -151,7 +163,13 @@ class FreelanceJobService:
     """Service layer for freelance job operations"""
     
     def __init__(self):
-        self.client = get_supabase_client()
+        self._client = None
+    
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = get_supabase_client()
+        return self._client
     
     def create_freelance_job(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new freelance job posting"""

@@ -45,14 +45,18 @@ export default function Freelance(){
       {!loading && filtered.length === 0 && <Card variant="glass" className="p-4">No jobs found.</Card>}
       <div className="grid md:grid-cols-2 gap-4">
         {filtered.map((j)=> (
-          <div key={j.id} className="space-y-2">
-            <Card variant="glass">
-              <div className="font-semibold">{j.title}</div>
-              <div className="text-sm text-textSecondary">{j.location} • {j.pay}</div>
-            </Card>
-            <PortfolioCard worker={j.worker} />
-            <RatingCard rating={j.rating.score} reviews={j.rating.reviews} />
-          </div>
+          <Card key={j.id} variant="glass" className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-semibold text-textPrimary">{j.title}</div>
+                <div className="text-sm text-textSecondary">{j.location} • {j.pay}</div>
+              </div>
+              <RatingCard rating={j.rating.score} reviews={j.rating.reviews} />
+            </div>
+            <div className="border-t border-border pt-3">
+              <PortfolioCard worker={j.worker} />
+            </div>
+          </Card>
         ))}
       </div>
       </main>

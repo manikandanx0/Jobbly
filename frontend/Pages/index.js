@@ -9,6 +9,8 @@ import { I18nProvider, useI18n } from '@/utils/i18n';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import Footer from '@/components/Footer';
+import Dropdown from '@/components/Dropdown';
+import InternshipCard from '@/components/InternshipCard';
 
 function Dashboard(){
   const { t } = useI18n();
@@ -17,6 +19,7 @@ function Dashboard(){
   const [sort, setSort] = useState('score');
   useEffect(()=>{ const id = setTimeout(()=> setDebouncedQ(q), 300); return ()=> clearTimeout(id); }, [q]);
   const { data, loading } = useSuggestions(debouncedQ);
+  const internships = (data || []).filter((i)=> i.type === 'internship');
   const sorted = useMemo(()=>{
     const arr = [...(data||[])];
     if (sort === 'score') return arr.sort((a,b)=> (b.score||0) - (a.score||0));
@@ -29,10 +32,16 @@ function Dashboard(){
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-h3 font-semibold">Browse</h3>
-            <select value={sort} onChange={(e)=>setSort(e.target.value)} className="select-rounded w-auto px-4 py-2">
-              <option value="score">Sort: Relevance</option>
-              <option value="date">Sort: Newest</option>
-            </select>
+            <div className="min-w-[180px]">
+              <Dropdown
+                value={sort}
+                onChange={(e)=> setSort(e.target.value)}
+                options={[
+                  { value: 'score', label: 'Sort: Relevance' },
+                  { value: 'date', label: 'Sort: Newest' },
+                ]}
+              />
+            </div>
           </div>
           <ProgressTracker />
           <Card variant="glass" className="glass">
@@ -62,6 +71,20 @@ function Dashboard(){
           <div className="space-y-4 origin-top max-w-4xl">
             <SuggestionPanel items={sorted} loading={loading} />
           </div>
+          {!!internships.length && (
+            <div>
+              <h3 className="text-h3 font-semibold mb-2">Internships</h3>
+              <div className="overflow-x-auto scrollbar -mx-4 px-4">
+                <div className="flex gap-3 min-w-full">
+                  {internships.map((item)=> (
+                    <div key={item.id} className="min-w-[320px] max-w-[360px] flex-1">
+                      <InternshipCard item={item} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Footer />

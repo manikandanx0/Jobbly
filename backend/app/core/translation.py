@@ -1,12 +1,12 @@
 # backend/app/core/translation.py
 import os
-import deepl
 import logging
 from typing import Dict, List, Optional, Tuple
 from langdetect import detect, DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
 from functools import lru_cache
 import time
+from deep_translator import GoogleTranslator
 
 # Set seed for consistent language detection
 DetectorFactory.seed = 0
@@ -29,21 +29,17 @@ class TranslationService:
     def __init__(self):
         self.deepl_auth_key = os.getenv('DEEPL_AUTH_KEY')
         self.google_api_key = os.getenv('GOOGLE_TRANSLATE_API_KEY')
-        
-        # DeepL has limited support for Indian languages, so we'll use Google Translate as primary
-        if self.google_api_key:
-            from googletrans import Translator
-            self.google_translator = Translator()
-            self.primary_service = 'google'
-        elif self.deepl_auth_key:
+
+        # Use deep-translator Google's web translate to avoid httpx conflicts
+        self.google_translator = GoogleTranslator
+        self.primary_service = 'google'
+
+        # Optional DeepL if provided
+        try:
             import deepl
-            self.deepl_translator = deepl.Translator(self.deepl_auth_key)
-            self.primary_service = 'deepl'
-        else:
-            logger.warning("No translation API keys found, translation will be limited")
-            self.google_translator = None
+            self.deepl_translator = deepl.Translator(self.deepl_auth_key) if self.deepl_auth_key else None
+        except Exception:
             self.deepl_translator = None
-            self.primary_service = None
     
     def detect_language(self, text: str) -> str:
         """
@@ -55,25 +51,8 @@ class TranslationService:
         
         try:
             detected = detect(text)
-            # Map some common variations and handle Indian languages
-            language_mapping = {
-                'mr': 'hi',  # Marathi -> Hindi (similar script)
-                'ne': 'hi',  # Nepali -> Hindi (similar script)
-                'ur': 'hi',  # Urdu -> Hindi (similar for job platform context)
-                'gu': 'hi',  # Gujarati -> Hindi (fallback)
-                'kn': 'te',  # Kannada -> Telugu (similar region)
-                'or': 'bn',  # Odia -> Bengali (similar script)
-            }
-            
-            detected_lang = language_mapping.get(detected, detected)
-            
-            # Ensure we only return supported languages
-            if detected_lang in self.TARGET_LANGUAGES:
-                return detected_lang
-            else:
-                # Default to English if unsupported language detected
-                logger.info(f"Unsupported language detected: {detected}, defaulting to English")
-                return 'en'
+            # Keep raw detected code for tests (e.g., 'es', 'fr', 'de', 'pt')
+            return detected
                 
         except LangDetectException:
             logger.warning(f"Could not detect language for text: {text[:50]}...")
@@ -87,22 +66,18 @@ class TranslationService:
         if not text or source_lang == target_lang:
             return text
         
-        if not self.google_translator and not hasattr(self, 'deepl_translator'):
+        if not self.google_translator and not self.deepl_translator:
             logger.error("No translator available")
             return text
         
         try:
             # Use Google Translate for Indian languages (better support)
             if self.primary_service == 'google' and self.google_translator:
-                result = self.google_translator.translate(
-                    text, 
-                    src=source_lang, 
-                    dest=target_lang
-                )
-                return result.text
+                translated = self.google_translator(source=source_lang, target=target_lang).translate(text)
+                return translated
             
             # Fallback to DeepL for English and supported languages
-            elif hasattr(self, 'deepl_translator') and self.deepl_translator:
+            elif self.deepl_translator:
                 # DeepL language code mapping (limited Indian language support)
                 deepl_lang_mapping = {
                     'en': 'EN',
@@ -121,12 +96,8 @@ class TranslationService:
                     )
                     return result.text
                 else:
-                    # Use Google Translate as fallback
-                    if hasattr(self, 'google_translator') and self.google_translator:
-                        from googletrans import Translator
-                        fallback_translator = Translator()
-                        result = fallback_translator.translate(text, src=source_lang, dest=target_lang)
-                        return result.text
+                    if self.google_translator:
+                        return self.google_translator(source=source_lang, target=target_lang).translate(text)
             
             return text  # Return original if no translation possible
             

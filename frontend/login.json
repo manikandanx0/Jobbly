@@ -1,0 +1,95 @@
+{
+    "project": "Jobbly",
+    "designSystem": {
+      "theme": {
+        "primaryColor": "#3B82F6", 
+        "secondaryColor": "#1E293B",
+        "backgroundColor": "#F9FAFB",
+        "accentColor": "#9333EA",
+        "textColor": "#111827",
+        "borderRadius": "1rem",
+        "shadow": "0px 8px 24px rgba(0, 0, 0, 0.08)"
+      },
+      "typography": {
+        "headingFont": "Inter, sans-serif",
+        "bodyFont": "Inter, sans-serif",
+        "headingSize": ["3xl", "2xl", "xl"],
+        "bodySize": ["lg", "base", "sm"],
+        "fontWeight": {
+          "bold": 700,
+          "semibold": 600,
+          "regular": 400
+        }
+      },
+      "layout": {
+        "container": {
+          "maxWidth": "1280px",
+          "padding": "1.5rem"
+        },
+        "card": {
+          "background": "white",
+          "borderRadius": "1.25rem",
+          "padding": "2rem",
+          "shadow": "0 12px 32px rgba(0,0,0,0.1)"
+        },
+        "formFields": {
+          "border": "1px solid #E5E7EB",
+          "focus": "border-color: #3B82F6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3)"
+        },
+        "button": {
+          "padding": "0.75rem 1.5rem",
+          "borderRadius": "1rem",
+          "background": "linear-gradient(to right, #3B82F6, #2563EB)",
+          "hover": "transform: scale(1.03); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4)"
+        }
+      },
+      "interactions": {
+        "animations": {
+          "cardTilt": {
+            "library": "react-bits",
+            "trigger": "onScroll",
+            "effect": "tilt and pop-in",
+            "springConfig": {
+              "stiffness": 120,
+              "damping": 14
+            }
+          },
+          "pageTransition": {
+            "type": "fade-up",
+            "duration": "0.6s",
+            "staggerChildren": true
+          }
+        }
+      },
+      "components": {
+        "loginPage": {
+          "layout": "2-column",
+          "leftSection": {
+            "type": "animatedCharacter",
+            "style": "3D illustration, floating effect"
+          },
+          "rightSection": {
+            "type": "tiltedCard",
+            "title": "Sign In to Jobbly",
+            "fields": ["username", "password"],
+            "options": ["rememberMe", "forgotPassword"],
+            "primaryButton": "Sign In",
+            "scrollCards": [
+              {
+                "title": "Find Your Perfect Internship",
+                "description": "AI-powered matching engine to recommend best internships."
+              },
+              {
+                "title": "Track Your Progress",
+                "description": "Interactive dashboard to see internship milestones."
+              },
+              {
+                "title": "Boost Your Resume",
+                "description": "AI-based resume analysis for better opportunities."
+              }
+            ]
+          }
+        }
+      }
+    }
+  }

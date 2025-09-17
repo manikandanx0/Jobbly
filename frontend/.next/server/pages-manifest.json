@@ -2,8 +2,6 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/api/progress": "pages/api/progress.js",
-  "/api/time": "pages/api/time.js",
-  "/api/suggestions": "pages/api/suggestions.js"
+  "/auth/login": "pages/auth/login.js",
+  "/auth/signup": "pages/auth/signup.js"
 }

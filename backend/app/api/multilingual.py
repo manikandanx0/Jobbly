@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 from app.core.translation import translation_service
 import logging
+from app.core.database import get_supabase_client
 
 multilingual_bp = Blueprint('multilingual', __name__, url_prefix='/api/multilingual')
 
@@ -112,3 +113,32 @@ def get_supported_languages():
         'supported_languages': translation_service.TARGET_LANGUAGES,
         'total_languages': len(translation_service.TARGET_LANGUAGES)
     }), 200
+
+@multilingual_bp.route('/applications', methods=['GET', 'POST', 'DELETE'])
+def applications():
+    """Store candidate internship applications per-user to mark 'already applied' in frontend."""
+    try:
+        client = get_supabase_client()
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            internship_id = data.get('internshipId')
+            user_id = data.get('userId')
+            if not internship_id or not user_id:
+                return jsonify({'error': 'internshipId and userId required'}), 400
+            res = client.table('applications').insert({ 'internship_id': internship_id, 'user_id': user_id }).execute()
+            return jsonify({'ok': True, 'item': (res.data or [{}])[0]}), 201
+        if request.method == 'DELETE':
+            internship_id = request.args.get('internshipId')
+            user_id = request.args.get('userId')
+            res = client.table('applications').delete().eq('internship_id', internship_id).eq('user_id', user_id).execute()
+            return jsonify({'ok': True, 'count': len(res.data or [])}), 200
+        # GET
+        user_id = request.args.get('userId')
+        q = client.table('applications').select('*')
+        if user_id:
+            q = q.eq('user_id', user_id)
+        res = q.execute()
+        return jsonify({ 'items': res.data or [] }), 200
+    except Exception as e:
+        logging.error(f"applications error: {str(e)}")
+        return jsonify({'error': 'applications failed'}), 500

@@ -1,10 +1,27 @@
-export async function login({ email, password }) {
-  // Placeholder: replace with real auth provider
-  if (email && password) { return { token: 'mock-token', user: { email } }; }
-  throw new Error('Invalid credentials');
+export async function login({ email, password, psid }) {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, psid })
+  });
+  if (!res.ok) throw new Error('Invalid credentials');
+  const data = await res.json();
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('auth', JSON.stringify({ token: data.access_token, user: data.user }));
+  }
+  return data;
 }
 
-export async function requireAuth(ctx) {
-  // Example server-side guard placeholder
-  return { user: { email: 'recruiter@example.com' } };
+export function getAuth() {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem('auth');
+  return raw ? JSON.parse(raw) : null;
+}
+
+export function logout() {
+  if (typeof window !== 'undefined') window.localStorage.removeItem('auth');
+}
+
+export function isLoggedIn(){
+  return !!getAuth();
 }

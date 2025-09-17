@@ -102,23 +102,14 @@ export default function InternshipCard({ item }) {
               }}><MicIcon /></button></span>
             </div>
             <div className="relative">
-              <span className="absolute left-0 -top-6 text-textSecondary"><DocumentTextIcon /></span>
-              <textarea rows={6} className="textarea pl-3" placeholder="Cover letter" value={form.cover} onChange={(e)=>setForm(f=>({...f, cover: e.target.value}))} />
+              <textarea rows={8} className="textarea pl-3 pr-3" placeholder="Cover letter" value={form.cover} onChange={(e)=>setForm(f=>({...f, cover: e.target.value}))} />
             </div>
             <div className="relative">
-              <span className="input-left-icon"><PaperclipIcon /></span>
-              <label className="input pl-10 cursor-pointer">
+              <label className="input cursor-pointer flex items-center gap-2">
+                <PaperclipIcon />
                 <input type="file" className="hidden" multiple />
                 <span className="text-textSecondary">Upload files (PDF, DOCX, ZIP)</span>
               </label>
-              <span className="input-right-icon"><button type="button" onClick={()=>{
-                if (typeof window === 'undefined') return;
-                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!Rec) return;
-                const rec = new Rec();
-                rec.onresult = (e)=>{ const t = e.results?.[0]?.[0]?.transcript; if (t) setForm(f=>({...f, cover: (f.cover ? f.cover + ' ' : '') + t})); };
-                rec.start();
-              }}><MicIcon /></button></span>
             </div>
           </div>
           <div className="flex items-center justify-end gap-3 mt-5">
