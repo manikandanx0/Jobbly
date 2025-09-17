@@ -24,7 +24,10 @@ def create_app():
     
     # Import and register blueprints
     from app.api.users import users_bp
+    from app.api.multilingual import multilingual_bp
+    
     app.register_blueprint(users_bp)
+    app.register_blueprint(multilingual_bp)
     
     # Health check endpoint
     @app.route('/health')

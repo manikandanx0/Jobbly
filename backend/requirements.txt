@@ -5,6 +5,28 @@ flask==3.0.0
 sqlalchemy==2.0.23
 psycopg2==2.9.9
 
+# Supabase client
+supabase==2.3.4
+
+# ML and NLP
+sentence-transformers==2.2.2
+spacy==3.7.2
+faiss-cpu==1.8.0
+
+# Translation and Language Detection for Indian Languages (Python 3.12 compatible)
+langdetect==1.0.9
+googletrans==4.0.0
+google-cloud-translate==3.12.1
+deepl==1.16.1
+deep-translator==1.11.4  # Alternative to googletrans with better reliability
+
+# Text processing for Indian languages (Python 3.12 compatible)
+indic-transliteration==2.3.43
+fasttext==0.9.2  # Better language detection alternative to polyglot
+
+# Data validation and serialization
+pydantic[email]==2.5.3
+
 # Environment variables
 python-dotenv==1.0.0
 
@@ -13,14 +35,21 @@ flask-cors==4.0.0
 
 # Production server
 gunicorn==21.2.0
-# Supabase client
-supabase==2.3.4
 
-# ML and NLP
-# sentence-transformers==2.2.2
-# spacy==3.7.2
-# faiss-cpu==1.7.4
+# Caching for translations (optional)
+redis==5.0.1
 
 # Data validation and serialization
 pydantic[email]==2.5.3
-gotrue==2.8.0
+
+# Environment variables
+python-dotenv==1.0.0
+
+# CORS support
+flask-cors==4.0.0
+
+# Production server
+gunicorn==21.2.0
+
+# Caching for translations
+redis==5.0.1

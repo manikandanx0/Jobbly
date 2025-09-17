@@ -9,13 +9,34 @@ class UserService:
     
     def __init__(self):
         self.client = get_supabase_client()
-        self.admin_client = get_admin_client()
+        # Only initialize admin client when needed
+        self._admin_client = None
+    
+    @property
+    def admin_client(self):
+        """Lazy load admin client"""
+        if self._admin_client is None:
+            self._admin_client = get_admin_client()
+        return self._admin_client
     
     def create_user(self, user_data: UserCreate, auth_id: str = None) -> Dict[str, Any]:
-        """Create a new user"""
+        """Create a new user with translation support"""
+        from app.core.translation import detect_and_translate
+        
         user_dict = user_data.dict(exclude_unset=True)
         if auth_id:
             user_dict['auth_id'] = auth_id
+        
+        # Handle professional summary translation
+        if 'professional_summary' in user_dict and user_dict['professional_summary']:
+            summary = user_dict['professional_summary']
+            source_lang, translations = detect_and_translate(summary, 'professional_summary')
+            
+            user_dict['professional_summary_source_language'] = source_lang
+            user_dict['professional_summary_translations'] = translations
+            
+            # Keep the original field for backward compatibility
+            user_dict['professional_summary'] = summary
             
         result = self.client.table('users').insert(user_dict).execute()
         return result.data[0] if result.data else None
@@ -37,10 +58,20 @@ class UserService:
         return result.data[0] if result.data else None
     
     def update_user(self, user_id: str, user_data: UserUpdate) -> Optional[Dict[str, Any]]:
-        """Update user information"""
+        """Update user information with translation support"""
+        from app.core.translation import detect_and_translate
+        
         update_dict = user_data.dict(exclude_unset=True)
         if not update_dict:
             return None
+        
+        # Handle professional summary translation if it's being updated
+        if 'professional_summary' in update_dict and update_dict['professional_summary']:
+            summary = update_dict['professional_summary']
+            source_lang, translations = detect_and_translate(summary, 'professional_summary')
+            
+            update_dict['professional_summary_source_language'] = source_lang
+            update_dict['professional_summary_translations'] = translations
             
         result = self.client.table('users')\
             .update(update_dict)\
