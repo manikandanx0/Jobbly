@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.motion-ready {
+  will-change: transform, opacity;
+}
+
+.card { @apply bg-white rounded-xl shadow-subtle border border-gray-200 p-6 transition hover:shadow-lg; }
+
+/* Typography and base sizing */
+html { font-size: 16px; }
+body { @apply text-textPrimary; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(180deg, #EEF0FF 0%, #F7F7FF 100%); }
+h1, .text-h1 { @apply text-3xl font-bold leading-snug; }
+h2, .text-h2 { @apply text-2xl font-semibold leading-snug; }
+h3, .text-h3 { @apply text-xl font-semibold leading-snug; }
+label { @apply text-sm font-medium text-textSecondary; }
+p, .text-body { @apply text-base font-normal leading-relaxed; }
+
+/* Inputs & buttons */
+@layer components {
+  .btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition; }
+  .btn-primary { @apply btn text-white bg-gradient-to-r from-[#6C00FF] to-[#8B5CF6] hover:from-[#5a00d9] hover:to-[#7c4bf1] shadow-md; }
+  .btn-secondary { @apply btn bg-white border border-gray-300 text-textPrimary hover:bg-gray-100; }
+  .btn-ghost { @apply btn bg-transparent text-textSecondary hover:bg-gray-100; }
+  .input { @apply w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-base transition outline-none; }
+  .input:focus { @apply border-primary ring-2 ring-primary/10; transform: translateY(-1px) scale-[1.01]; }
+  .select { @apply input pr-8; }
+  .select-rounded { @apply appearance-none input rounded-full pr-10 bg-white/80; background-image: url("data:image/svg+xml,%3Csvg fill='none' stroke='gray' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .6rem center; background-size: 1rem; }
+  .input-with-mic { @apply input pr-10 pl-10; }
+  .input-left-icon { @apply absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary; }
+  .input-right-icon { @apply absolute right-3 top-1/2 -translate-y-1/2 text-textSecondary; }
+  .textarea { @apply input min-h-[6rem]; }
+  .glass { @apply backdrop-blur-xl bg-white/65 border border-white/50 shadow-[0_8px_24px_rgba(108,0,255,0.08)]; background-image: linear-gradient(145deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.55) 100%); }
+  .glass-deep { @apply backdrop-blur-xl bg-white/50 border border-white/40 shadow-[0_12px_32px_rgba(108,0,255,0.12)]; }
+  .header-glass { @apply bg-white/70 backdrop-blur-md border-b border-white/50; }
+  .card-elevated { @apply shadow-md; }
+  .card-outlined { @apply border border-gray-300 shadow-none; }
+}
+
+.shadow-subtle {
+  box-shadow: var(--shadow-subtle);
+}
+
+/* Focus visibility */
+:focus-visible { outline: 2px solid theme(colors.primary); outline-offset: 2px; }
+
+/* Motion helpers */
+.fade-slide-enter { opacity: 0; transform: translateY(8px); }
+.fade-slide-enter-active { opacity: 1; transform: translateY(0); transition: opacity .2s ease, transform .2s ease; }
