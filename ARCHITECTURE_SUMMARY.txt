@@ -1,0 +1,82 @@
+Jobbly - Architecture, Use Cases, Schema, Errors, Theme
+
+1) High-level architecture
+- Monorepo
+  - backend/  (Flask 3, Python 3.11)
+  - frontend/ (Next.js 14, React 18, Tailwind)
+- Local dev
+  - Backend: http://localhost:5000
+  - Frontend: http://localhost:3000
+  - next.config.js proxies /api/users/* and /api/multilingual/* to Flask
+- Data: Supabase (Postgres + SDK). Table-based auth fallback added for reliability.
+
+2) Backend (backend/)
+- wsgi.py: starts Flask via app.create_app(), debug server on 5000.
+- app/__init__.py: CORS, SECRET_KEY from .env, rotating file logs at logs/server.log with request_id, error handler, registers blueprints, /health and root.
+- app/core/database.py: lazy Supabase client from env, admin client on demand.
+- app/core/services.py: user/internship/freelance services over Supabase tables.
+- app/core/translation.py: langdetect + deep-translator (Google) and optional DeepL; cached detection; translate_to_all_languages.
+- app/api/users.py:
+  - POST /api/users/ (service-layer create)
+  - POST /api/users/signup (Supabase Auth; fallback inserts user with password_hash)
+  - POST /api/users/login (Supabase Auth; fallback checks password_hash and returns JWT)
+  - GET  /api/users/me (reads user via token)
+  - GET  /api/users/<id>, PUT /api/users/<id>
+  - GET  /api/users/talents, GET /api/users/search
+- app/api/multilingual.py:
+  - POST /api/multilingual/detect, /translate, /batch-translate
+  - GET  /api/multilingual/languages
+  - GET|POST|DELETE /api/multilingual/applications (aligned to new schema: talent_id, job_type, internship_id/job_id)
+- tests_api.py: httpx-based smoke tests for health, root, languages/detect, signup/login, applications.
+
+3) Frontend (frontend/)
+- pages/auth/login.js, pages/auth/signup.js: centered white card; desktop two-column (left: blue slider; right: card + logo); mobile single column; Framer Motion animations.
+- components/AuthSlider.jsx: 4 slides (fake-certificate, ai-internship, freelancing, blue-collar); auto advance; arrows and dots; spacing to avoid overlap.
+- components/Dropdown.jsx: accessible custom dropdown with keyboard/motion.
+- components/Navbar.js: minimal navbar (search, notifications, profile, language).
+- utils/authStub.js: login -> POST /api/users/login; signup -> POST /api/users/signup; localStorage token helper.
+- styles/globals.css: inputs, buttons, elevated/glass utilities, focus/scrollbar.
+- style.json: brand colors, typography, layout for auth; white background, blue accents, subtle shadows.
+- next.config.js: rewrites to Flask backend.
+
+4) Current schema (key tables)
+- public.users: id, role, full_name, email unique, profile fields, multilingual fields. Fallback auth uses password_hash (text). If missing:
+  alter table public.users add column if not exists password_hash text;
+- public.internships and public.freelance_jobs: rich posting metadata with translations.
+- public.applications: id, talent_id, job_type ('internship'|'freelance'), internship_id/job_id, status, cover/resume/portfolio, application_data, timestamps.
+- public.saved_jobs, public.portfolios, public.company_profiles, public.translation_logs.
+
+5) Use cases
+- Signup: FE -> POST /api/users/signup (email,password,name). BE tries Supabase; fallback inserts user with password_hash. 201.
+- Login: FE -> POST /api/users/login. BE tries Supabase; fallback verifies password_hash; returns access_token + user.
+- Apply: FE -> POST /api/multilingual/applications with talent_id, job_type, internship_id/job_id (+ optional fields). 201.
+- Multilingual: detect/translate endpoints used to create localized content.
+
+6) Error and mitigation
+- Error: "Client.__init__() got an unexpected keyword argument 'proxy'" during Supabase Auth.
+- Likely cause: httpx/Supabase compatibility and/or proxy env vars.
+- Mitigation:
+  - httpx pinned to 0.25.2 (compatible with supabase==2.3.4)
+  - Table-based fallback auth for signup/login (stores password_hash in users)
+  - Structured rotating logs with request_id; safe outside-request logging
+- If still seen, clear proxy env vars in backend shell (PowerShell):
+  Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue
+  Remove-Item Env:HTTPS_PROXY -ErrorAction SilentlyContinue
+  Remove-Item Env:http_proxy -ErrorAction SilentlyContinue
+  Remove-Item Env:https_proxy -ErrorAction SilentlyContinue
+
+7) How to run
+- Backend: .env (SUPABASE_URL, SUPABASE_ANON_KEY, SECRET_KEY). Install deps and run backend\wsgi.py. Logs in logs/server.log.
+- Frontend: cd frontend; npm i; npm run dev; open http://localhost:3000.
+
+8) Tests
+- With backend running: backend\venv\Scripts\python.exe backend\tests_api.py (prints request, status, body for each endpoint)
+
+9) Theme
+- Clean, modern, accessible; white cards with subtle borders/shadows; primary #00A9E0, highlight #0078D4; text #333/#666; border #E0E0E0; background #F1F9FF.
+- Auth screens: two-column desktop (blue slider left, white card right); responsive on mobile.
+
+10) Suggested next steps
+- Use Supabase Auth in production (email confirmation), keep table fallback for dev only.
+- Add Playwright e2e for auth & applications.
+- Scrub sensitive fields in DEBUG logs; add RBAC and unified token verification middleware.

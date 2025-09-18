@@ -1,16 +1,17 @@
-export async function login({ email, password, psid }) {
-  const res = await fetch('/api/auth/login', {
+export async function login({ email, password }) {
+  const res = await fetch('/api/users/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, psid }),
-    credentials: 'include' // Include cookies for server-side auth
+    body: JSON.stringify({ email, password })
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || 'Invalid credentials');
   }
   const data = await res.json();
-  // Server-side cookies are now set automatically
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('auth', JSON.stringify({ token: data.access_token, user: data.user }));
+  }
   return data;
 }
 
