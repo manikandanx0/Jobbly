@@ -6,7 +6,7 @@ from pydantic import EmailStr
 from app.core.services import user_service
 from pydantic import ValidationError
 import logging
-from app.core.database import get_supabase_client, get_admin_client
+from app.core.database import get_db_connection, get_admin_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import os
@@ -53,64 +53,24 @@ def signup_user():
         if len(password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
 
-        client = get_supabase_client()
+        # Local table signup (no Supabase)
         try:
-            res = client.auth.sign_up({ 'email': email, 'password': password, 'options': { 'data': { 'full_name': name } } })
-        except Exception as e:
-            logging.warning(f"Supabase auth sign_up failed, attempting table signup fallback: {e}")
-            # Fallback: store user with password hash in users table
-            try:
-                admin = get_admin_client()
-                exists = admin.table('users').select('id').eq('email', email).limit(1).execute()
-                if exists.data:
+            admin = get_admin_connection()
+            with admin.cursor() as cur:
+                cur.execute("SELECT id FROM public.users WHERE email = %s LIMIT 1", (email,))
+                if cur.fetchone():
                     return jsonify({'error': 'An account with this email already exists.'}), 400
                 password_hash = generate_password_hash(password)
-                inserted = admin.table('users').insert({
-                    'email': email,
-                    'full_name': name or '',
-                    'password_hash': password_hash,
-                    'role': 'talent',
-                }).execute()
-                user_id = (inserted.data or [{}])[0].get('id')
+                cur.execute(
+                    "INSERT INTO public.users (role, full_name, email, password_hash, created_at, updated_at) VALUES (%s,%s,%s,%s, now(), now()) RETURNING id",
+                    ('talent', name or '', email, password_hash)
+                )
+                row = cur.fetchone(); admin.commit()
+                user_id = row['id'] if row else None
                 return jsonify({ 'message': 'Signup successful.', 'user': { 'id': user_id, 'email': email } }), 201
-            except Exception as table_err:
-                logging.error(f"Fallback table signup failed: {table_err}")
-                return jsonify({'error': 'Signup failed'}), 400
-        # Supabase may require email confirmation; return a friendly message
-        user_id = getattr(res.user, 'id', None) if getattr(res, 'user', None) else None
-        
-        # Create user record in users table with translation support
-        if user_id:
-            try:
-                from app.core.translation import detect_and_translate
-                
-                # Create user data for our users table
-                user_data = {
-                    'id': user_id,
-                    'auth_id': user_id,
-                    'role': 'talent',  # Default role
-                    'full_name': name or '',
-                    'email': email,
-                    'created_at': 'now()',
-                    'updated_at': 'now()'
-                }
-                
-                # If name is provided, translate it
-                if name:
-                    source_lang, translations = detect_and_translate(name, 'full_name')
-                    user_data['full_name_source_language'] = source_lang
-                    user_data['full_name_translations'] = translations
-                
-                # Insert into users table
-                admin = get_admin_client()
-                user_result = admin.table('users').insert(user_data).execute()
-                print(f"Created user record: {user_result.data}")
-                
-            except Exception as e:
-                print(f"Warning: Could not create user record: {e}")
-                # Don't fail signup if user record creation fails
-        
-        return jsonify({ 'message': 'Signup successful. Please check your email to confirm your account.', 'user': { 'id': user_id, 'email': email } }), 201
+        except Exception as table_err:
+            logging.error(f"Table signup failed: {table_err}")
+            return jsonify({'error': 'Signup failed'}), 400
     except Exception as e:
         error_msg = str(e)
         logging.error(f"Signup error: {error_msg}")
@@ -214,33 +174,16 @@ def login_user():
         if not email or not password:
             return jsonify({'error': 'Email and password required'}), 400
 
-        client = get_supabase_client()
-        try:
-            result = client.auth.sign_in_with_password({
-                'email': email,
-                'password': password,
-            })
-            session = result.session
-            if not session:
-                return jsonify({'error': 'Invalid credentials'}), 401
-            return jsonify({
-                'access_token': session.access_token,
-                'refresh_token': session.refresh_token,
-                'user': {
-                    'id': result.user.id,
-                    'email': result.user.email,
-                }
-            }), 200
-        except Exception as auth_err:
-            logging.warning(f"Supabase sign_in failed, trying table auth fallback: {auth_err}")
-            # Fallback: compare stored hash in users table
-            rec = client.table('users').select('id,email,full_name,password_hash').eq('email', email).limit(1).execute()
-            row = (rec.data or [None])[0]
+        # Table auth (compare password hash)
+        admin = get_admin_connection()
+        with admin.cursor() as cur:
+            cur.execute("SELECT id,email,full_name,password_hash FROM public.users WHERE email = %s LIMIT 1", (email,))
+            row = cur.fetchone()
             if not row or not row.get('password_hash'):
                 return jsonify({'error': 'Invalid credentials'}), 401
             if not check_password_hash(row['password_hash'], password):
                 return jsonify({'error': 'Invalid credentials'}), 401
-            token = jwt.encode({'sub': row['id']}, os.getenv('SECRET_KEY', 'dev-secret-key'), algorithm='HS256')
+            token = jwt.encode({'sub': str(row['id'])}, os.getenv('SECRET_KEY', 'dev-secret-key'), algorithm='HS256')
             return jsonify({'access_token': token, 'user': {'id': row['id'], 'email': row['email'], 'full_name': row.get('full_name')}}), 200
     except Exception as e:
         error_msg = str(e)

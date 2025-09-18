@@ -8,7 +8,7 @@ export default function RoleSelect() {
 
   useEffect(() => {
     if (!auth) {
-      window.location.href = '/auth';
+      window.location.href = '/';
     }
   }, [auth]);
 

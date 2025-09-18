@@ -11,6 +11,11 @@ export async function login({ email, password }) {
   const data = await res.json();
   if (typeof window !== 'undefined') {
     window.localStorage.setItem('auth', JSON.stringify({ token: data.access_token, user: data.user }));
+    // Also set auth cookie for middleware
+    try {
+      const expires = new Date(Date.now() + 2*60*60*1000).toUTCString();
+      document.cookie = `auth_token=${data.access_token}; Path=/; SameSite=Lax; Expires=${expires}`;
+    } catch {}
   }
   return data;
 }
@@ -42,7 +47,8 @@ export async function logout() {
   }
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem('auth');
-    window.location.href = '/auth';
+    document.cookie = 'auth_token=; Max-Age=0; Path=/;';
+    window.location.href = '/auth/talent';
   }
 }
 

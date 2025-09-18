@@ -1,6 +1,6 @@
 # backend/app/core/services.py
 from typing import List, Optional, Dict, Any
-from app.core.database import get_supabase_client, get_admin_client
+from app.core.database import get_db_connection, get_admin_connection
 from app.models.user import UserCreate, UserUpdate, UserResponse
 import uuid
 
@@ -8,22 +8,17 @@ class UserService:
     """Service layer for user operations"""
     
     def __init__(self):
-        # Defer Supabase client creation until first use to avoid import-time failures
-        self._client = None
-        self._admin_client = None
+        self._conn = None
     
     @property
-    def client(self):
-        if self._client is None:
-            self._client = get_supabase_client()
-        return self._client
+    def conn(self):
+        if self._conn is None:
+            self._conn = get_db_connection()
+        return self._conn
     
     @property
-    def admin_client(self):
-        """Lazy load admin client"""
-        if self._admin_client is None:
-            self._admin_client = get_admin_client()
-        return self._admin_client
+    def admin_conn(self):
+        return get_admin_connection()
     
     def create_user(self, user_data: UserCreate, auth_id: str = None) -> Dict[str, Any]:
         """Create a new user with translation support"""
@@ -44,24 +39,25 @@ class UserService:
             # Keep the original field for backward compatibility
             user_dict['professional_summary'] = summary
             
-        result = self.client.table('users').insert(user_dict).execute()
-        return result.data[0] if result.data else None
+        with self.admin_conn().cursor() as cur:
+            columns = ','.join(user_dict.keys())
+            placeholders = ','.join(['%s'] * len(user_dict))
+            cur.execute(f"INSERT INTO public.users ({columns}) VALUES ({placeholders}) RETURNING *", list(user_dict.values()))
+            row = cur.fetchone()
+            self.admin_conn().commit()
+            return row
     
     def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
-        result = self.client.table('users')\
-            .select('*')\
-            .eq('id', user_id)\
-            .execute()
-        return result.data[0] if result.data else None
+        with self.conn().cursor() as cur:
+            cur.execute("SELECT * FROM public.users WHERE id = %s", (user_id,))
+            return cur.fetchone()
     
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email"""
-        result = self.client.table('users')\
-            .select('*')\
-            .eq('email', email)\
-            .execute()
-        return result.data[0] if result.data else None
+        with self.conn().cursor() as cur:
+            cur.execute("SELECT * FROM public.users WHERE email = %s", (email,))
+            return cur.fetchone()
     
     def update_user(self, user_id: str, user_data: UserUpdate) -> Optional[Dict[str, Any]]:
         """Update user information with translation support"""
@@ -79,11 +75,12 @@ class UserService:
             update_dict['professional_summary_source_language'] = source_lang
             update_dict['professional_summary_translations'] = translations
             
-        result = self.client.table('users')\
-            .update(update_dict)\
-            .eq('id', user_id)\
-            .execute()
-        return result.data[0] if result.data else None
+        sets = ','.join([f"{k} = %s" for k in update_dict.keys()])
+        with self.admin_conn().cursor() as cur:
+            cur.execute(f"UPDATE public.users SET {sets} WHERE id = %s RETURNING *", list(update_dict.values()) + [user_id])
+            row = cur.fetchone()
+            self.admin_conn().commit()
+            return row
     
     def get_talents(self, 
                    skills: Optional[List[str]] = None,
@@ -91,90 +88,89 @@ class UserService:
                    experience_level: Optional[str] = None,
                    availability: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get talents with optional filters"""
-        query = self.client.table('users')\
-            .select('*')\
-            .eq('role', 'talent')
+        sql = "SELECT * FROM public.users WHERE role = 'talent'"
+        params = []
         
         if skills:
-            # Filter by skills overlap
-            query = query.overlaps('skills', skills)
+            sql += " AND skills && %s"; params.append(skills)
         if location:
-            query = query.ilike('location', f'%{location}%')
+            sql += " AND location ILIKE %s"; params.append(f"%{location}%")
         if experience_level:
-            query = query.eq('experience_level', experience_level)
+            sql += " AND experience_level = %s"; params.append(experience_level)
         if availability:
-            query = query.eq('availability', availability)
-            
-        result = query.execute()
-        return result.data or []
+            sql += " AND availability = %s"; params.append(availability)
+        with self.conn().cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchall() or []
     
     def delete_user(self, user_id: str) -> bool:
         """Delete a user (admin only)"""
-        result = self.admin_client.table('users')\
-            .delete()\
-            .eq('id', user_id)\
-            .execute()
-        return len(result.data) > 0
+        with self.admin_conn().cursor() as cur:
+            cur.execute("DELETE FROM public.users WHERE id = %s RETURNING id", (user_id,))
+            ok = cur.fetchone() is not None
+            self.admin_conn().commit()
+            return ok
 
 class InternshipService:
     """Service layer for internship operations"""
     
     def __init__(self):
-        self._client = None
+        self._conn = None
     
     @property
     def client(self):
-        if self._client is None:
-            self._client = get_supabase_client()
-        return self._client
+        if self._conn is None:
+            self._conn = get_db_connection()
+        return self._conn
     
     def create_internship(self, internship_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new internship posting"""
-        result = self.client.table('internships').insert(internship_data).execute()
-        return result.data[0] if result.data else None
+        columns = ','.join(internship_data.keys())
+        placeholders = ','.join(['%s'] * len(internship_data))
+        with self.conn().cursor() as cur:
+            cur.execute(f"INSERT INTO public.internships ({columns}) VALUES ({placeholders}) RETURNING *", list(internship_data.values()))
+            row = cur.fetchone(); self.conn().commit(); return row
     
     def get_internships(self, 
                        status: str = 'open',
                        skills: Optional[List[str]] = None,
                        location: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get internships with filters"""
-        query = self.client.table('internships')\
-            .select('*')\
-            .eq('status', status)\
-            .order('posted_at', desc=True)
+        sql = "SELECT * FROM public.internships WHERE status = %s ORDER BY posted_at DESC"; params=[status]
         
         if skills:
-            query = query.overlaps('required_skills', skills)
+            sql = sql.replace('WHERE status = %s', 'WHERE status = %s AND required_skills && %s'); params.append(skills)
         if location:
-            query = query.ilike('location', f'%{location}%')
-            
-        result = query.execute()
-        return result.data or []
+            sql = sql.replace('ORDER BY posted_at DESC', 'AND location ILIKE %s ORDER BY posted_at DESC'); params.append(f"%{location}%")
+        with self.conn().cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchall() or []
     
     def get_internship_by_id(self, internship_id: str) -> Optional[Dict[str, Any]]:
         """Get internship by ID"""
-        result = self.client.table('internships')\
-            .select('*')\
-            .eq('id', internship_id)\
-            .execute()
-        return result.data[0] if result.data else None
+        with self.conn().cursor() as cur:
+            cur.execute("SELECT * FROM public.internships WHERE id = %s", (internship_id,))
+            return cur.fetchone()
 
 class FreelanceJobService:
     """Service layer for freelance job operations"""
     
     def __init__(self):
-        self._client = None
+        self._conn = None
     
     @property
     def client(self):
-        if self._client is None:
-            self._client = get_supabase_client()
-        return self._client
+        if self._conn is None:
+            self._conn = get_db_connection()
+        return self._conn
     
     def create_freelance_job(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new freelance job posting"""
-        result = self.client.table('freelance_jobs').insert(job_data).execute()
-        return result.data[0] if result.data else None
+        columns = ','.join(job_data.keys())
+        placeholders = ','.join(['%s'] * len(job_data))
+        with self.conn().cursor() as cur:
+            cur.execute(f"INSERT INTO public.freelance_jobs ({columns}) VALUES ({placeholders}) RETURNING *", list(job_data.values()))
+            row = cur.fetchone(); self.conn().commit(); return row
     
     def get_freelance_jobs(self,
                           status: str = 'open',
@@ -182,20 +178,17 @@ class FreelanceJobService:
                           budget_min: Optional[float] = None,
                           budget_max: Optional[float] = None) -> List[Dict[str, Any]]:
         """Get freelance jobs with filters"""
-        query = self.client.table('freelance_jobs')\
-            .select('*')\
-            .eq('status', status)\
-            .order('posted_at', desc=True)
+        sql = "SELECT * FROM public.freelance_jobs WHERE status = %s ORDER BY posted_at DESC"; params=[status]
         
         if category:
-            query = query.eq('category', category)
+            sql = sql.replace('WHERE status = %s', 'WHERE status = %s AND category = %s'); params.append(category)
         if budget_min:
-            query = query.gte('budget_min', budget_min)
+            sql = sql.replace('ORDER BY posted_at DESC', 'AND budget_min >= %s ORDER BY posted_at DESC'); params.append(budget_min)
         if budget_max:
-            query = query.lte('budget_max', budget_max)
-            
-        result = query.execute()
-        return result.data or []
+            sql = sql.replace('ORDER BY posted_at DESC', 'AND budget_max <= %s ORDER BY posted_at DESC'); params.append(budget_max)
+        with self.conn().cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchall() or []
 
 # Service instances
 user_service = UserService()

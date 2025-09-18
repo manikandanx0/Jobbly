@@ -4,6 +4,10 @@ export const dataStore = {
     { id: 'i2', title: 'Backend Intern', company: 'Globex', location: 'Chennai', skills: ['Node','MongoDB'], postedAt: '2025-08-26', description: 'Assist in building APIs and optimizing database queries.' },
     { id: 'i3', title: 'Data Intern', company: 'Initech', location: 'Remote', skills: ['Python','NLP'], postedAt: '2025-09-10', description: 'Analyze datasets and help prototype NLP models.' }
   ],
+  freelanceJobs: [
+    { id: 'j1', title: 'React Landing Page', budgetType: 'fixed', budgetMin: 8000, budgetMax: 15000, location: 'Remote', skills: ['React','Tailwind'], description: 'Build a responsive marketing page.' },
+    { id: 'j2', title: 'API Integration (Node)', budgetType: 'hourly', budgetMin: 500, budgetMax: 1200, location: 'Remote', skills: ['Node','HTTP'], description: 'Integrate third-party API with retries and caching.' }
+  ],
   freelancers: [
     { id: 'f1', title: 'Electrician', location: 'Chennai', pay: '₹600/day', worker: { name:'Ravi', skill:'Electrician', location:'Chennai' }, rating: { score: 4.7, reviews: 210 } },
     { id: 'f2', title: 'Plumber', location: 'Bangalore', pay: '₹700/day', worker: { name:'Arjun', skill:'Plumber', location:'Bangalore' }, rating: { score: 4.4, reviews: 90 } }
@@ -23,6 +27,17 @@ export function addInternship(item) {
 
 export function listInternships(){
   return dataStore.internships;
+}
+
+export function addFreelanceJob(item){
+  const id = 'j' + (dataStore.freelanceJobs.length + 1);
+  const normalized = { id, ...item };
+  dataStore.freelanceJobs.unshift(normalized);
+  return normalized;
+}
+
+export function listFreelanceJobs(){
+  return dataStore.freelanceJobs;
 }
 
 export function addApplication({ internshipId, applicant }){

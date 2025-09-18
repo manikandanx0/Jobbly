@@ -6,16 +6,16 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 // Protected routes that require authentication
 const protectedRoutes = [
-  '/',
   '/applications',
   '/portfolio',
+  '/talent/dashboard',
   '/recruiter/dashboard',
   '/recruiter/profile',
   '/freelance'
 ];
 
 // Auth routes that should redirect if already logged in
-const authRoutes = ['/auth', '/auth/login', '/auth/signup'];
+const authRoutes = ['/auth/talent', '/auth/recruit'];
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
@@ -50,7 +50,7 @@ export function middleware(request) {
 
   // Redirect unauthenticated users from protected routes
   if (isProtectedRoute && !isAuthenticated) {
-    const loginUrl = new URL('/auth', request.url);
+    const loginUrl = new URL('/auth/talent', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
