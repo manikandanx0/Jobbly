@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { setAuthCookie } from '@/utils/serverAuth';
 
 // In-memory users store for demo (replace with DB)
 const users = global._users || (global._users = new Map());
@@ -16,7 +17,12 @@ export default async function handler(req, res) {
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
   const token = jwt.sign({ sub: key }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '2h' });
-  return res.status(200).json({ access_token: token, user: { id: key, email: u.email || null, username: u.username || null } });
+  const user = { id: key, email: u.email || null, username: u.username || null };
+  
+  // Set HTTP-only cookie for server-side authentication
+  setAuthCookie(res, token, user);
+  
+  return res.status(200).json({ access_token: token, user });
 }
 
 

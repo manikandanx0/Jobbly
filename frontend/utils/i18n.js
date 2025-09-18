@@ -29,11 +29,7 @@ export function I18nProvider({ children }) {
         setDict(data);
         setIsLoading(false);
         
-        // Handle auth redirect after translations are loaded
-        const isAuthRoute = router.pathname.startsWith('/auth/');
-        if (!isAuthRoute && !isLoggedIn()){
-          router.replace('/auth/login');
-        }
+        // Server-side authentication is now handled by middleware
       })
       .catch(err => {
         console.error('Failed to load language file:', err);

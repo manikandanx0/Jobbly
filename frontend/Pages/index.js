@@ -6,17 +6,19 @@ import ProgressTracker from '@/components/ProgressTracker';
 import Card from '@/components/Card';
 import { useSuggestions } from '@/components/useSuggestions';
 import { I18nProvider, useI18n } from '@/utils/i18n';
+import { withAuth } from '@/utils/serverAuth';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import Footer from '@/components/Footer';
 import Dropdown from '@/components/Dropdown';
 import InternshipCard from '@/components/InternshipCard';
 
-function Dashboard(){
+function Dashboard({ user }){
   const { t } = useI18n();
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [sort, setSort] = useState('score');
+  
   useEffect(()=>{ const id = setTimeout(()=> setDebouncedQ(q), 300); return ()=> clearTimeout(id); }, [q]);
   const { data, loading } = useSuggestions(debouncedQ);
   const internships = (data || []).filter((i)=> i.type === 'internship');
@@ -92,6 +94,9 @@ function Dashboard(){
   );
 }
 
-export default function Page(){
-  return (<I18nProvider><Dashboard /></I18nProvider>);
+export default function Page({ user }){
+  return (<I18nProvider><Dashboard user={user} /></I18nProvider>);
 }
+
+// Server-side authentication
+export const getServerSideProps = withAuth();

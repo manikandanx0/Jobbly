@@ -5,8 +5,9 @@ import SEO from '@/components/SEO';
 import { useToast } from '@/components/Toast';
 import Link from 'next/link';
 import Card from '@/components/Card';
+import { withAuth } from '@/utils/serverAuth';
 
-export default function Dashboard(){
+export default function Dashboard({ user }){
   const { notify } = useToast();
   const [items, setItems] = useState([]);
   const [verified, setVerified] = useState(false);
@@ -60,3 +61,6 @@ export default function Dashboard(){
     </Layout>
   );
 }
+
+// Server-side authentication
+export const getServerSideProps = withAuth();

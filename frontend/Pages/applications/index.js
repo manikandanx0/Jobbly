@@ -3,18 +3,20 @@ import Layout from '@/components/Layout';
 import SEO from '@/components/SEO';
 import Card from '@/components/Card';
 import Link from 'next/link';
-import { getAuth } from '@/utils/authStub';
+import { withAuth } from '@/utils/serverAuth';
+import { getAuthHeaders } from '@/utils/authStub';
 
-export default function Applications(){
+export default function Applications({ user }){
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    const auth = getAuth();
-    const userId = auth?.user?.id;
-    const url = userId ? `/api/applications?userId=${encodeURIComponent(userId)}` : '/api/applications';
-    fetch(url).then(r=>r.json()).then(d=> setItems(d.items || [])).finally(()=>setLoading(false));
-  }, []);
+    const userId = user?.id;
+    const url = userId ? `/api/multilingual/applications?userId=${encodeURIComponent(userId)}` : '/api/multilingual/applications';
+    fetch(url, {
+      headers: getAuthHeaders()
+    }).then(r=>r.json()).then(d=> setItems(d.items || [])).finally(()=>setLoading(false));
+  }, [user]);
 
   return (
     <Layout>
@@ -38,3 +40,6 @@ export default function Applications(){
     </Layout>
   );
 }
+
+// Server-side authentication
+export const getServerSideProps = withAuth();

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Layout from '@/components/Layout';
 import SEO from '@/components/SEO';
 import Link from 'next/link';
+import { withAuth } from '@/utils/serverAuth';
 
-export default function PortfolioIndex(){
+export default function PortfolioIndex({ user }){
   const [profile, setProfile] = useState({ name: '', email: '', headline: '' });
   const [portfolio, setPortfolio] = useState({ summary: '', skills: '', projects: '' });
   const publicUrl = useMemo(()=>{
@@ -88,4 +89,5 @@ export default function PortfolioIndex(){
   );
 }
 
-
+// Server-side authentication
+export const getServerSideProps = withAuth();

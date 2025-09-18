@@ -1,6 +1,7 @@
 # backend/app/api/multilingual.py
 from flask import Blueprint, request, jsonify
 from app.core.translation import translation_service
+from app.core.auth import login_required, require_user_id, get_current_user
 import logging
 from app.core.database import get_supabase_client
 
@@ -120,13 +121,23 @@ def applications():
     try:
         client = get_supabase_client()
         if request.method == 'POST':
+            # Require authentication for creating applications
+            auth_result = login_required(lambda: None)()
+            if isinstance(auth_result, tuple) and auth_result[1] == 401:
+                return auth_result
+            
             data = request.get_json() or {}
             internship_id = data.get('internshipId') or data.get('internship_id')
             job_id = data.get('jobId') or data.get('job_id')
             user_id = data.get('userId') or data.get('user_id')
+            current_user = get_current_user()
+            
+            # Use authenticated user's ID instead of provided user_id
+            if current_user:
+                user_id = current_user['id']
             
             if not user_id:
-                return jsonify({'error': 'userId required'}), 400
+                return jsonify({'error': 'Authentication required'}), 401
             
             if not internship_id and not job_id:
                 return jsonify({'error': 'internshipId or jobId required'}), 400
@@ -157,14 +168,19 @@ def applications():
             return jsonify({'ok': True, 'item': (res.data or [{}])[0]}), 201
             
         if request.method == 'DELETE':
+            # Require authentication for deleting applications
+            auth_result = login_required(lambda: None)()
+            if isinstance(auth_result, tuple) and auth_result[1] == 401:
+                return auth_result
+            
             internship_id = request.args.get('internshipId') or request.args.get('internship_id')
             job_id = request.args.get('jobId') or request.args.get('job_id')
-            user_id = request.args.get('userId') or request.args.get('user_id')
+            current_user = get_current_user()
             
-            if not user_id:
-                return jsonify({'error': 'userId required'}), 400
+            if not current_user:
+                return jsonify({'error': 'Authentication required'}), 401
                 
-            q = client.table('applications').delete().eq('talent_id', user_id)
+            q = client.table('applications').delete().eq('talent_id', current_user['id'])
             
             if internship_id:
                 q = q.eq('internship_id', internship_id)
@@ -176,10 +192,19 @@ def applications():
             res = q.execute()
             return jsonify({'ok': True, 'count': len(res.data or [])}), 200
             
-        # GET
+        # GET - require authentication for getting applications
+        auth_result = login_required(lambda: None)()
+        if isinstance(auth_result, tuple) and auth_result[1] == 401:
+            return auth_result
+        
+        current_user = get_current_user()
         user_id = request.args.get('userId') or request.args.get('user_id')
         job_type = request.args.get('jobType') or request.args.get('job_type')
         status = request.args.get('status')
+        
+        # If no user_id provided, use current user's ID
+        if not user_id and current_user:
+            user_id = current_user['id']
         
         q = client.table('applications').select('*')
         
