@@ -32,16 +32,11 @@ def login_required(f):
             
             # Get user from Supabase to ensure they still exist
             client = get_supabase_client()
-            user_resp = client.auth.get_user(token)
-            
-            if not user_resp.user:
-                return jsonify({'error': 'Invalid token', 'message': 'User not found'}), 401
-            
-            # Add user info to request context
+            # We use our own JWT; retrieve role-aware user context from token
             request.current_user = {
-                'id': user_resp.user.id,
-                'email': user_resp.user.email,
-                'user_metadata': getattr(user_resp.user, 'user_metadata', {})
+                'id': decoded_token.get('sub'),
+                'email': decoded_token.get('email'),
+                'role': decoded_token.get('role')
             }
             
             return f(*args, **kwargs)

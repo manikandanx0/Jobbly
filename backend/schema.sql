@@ -1,8 +1,40 @@
--- Jobbly Database Schema
 -- This file contains the complete database schema for the Jobbly platform
 -- Run this in your Supabase SQL editor to set up the database
 
 -- Schema updates for better role separation and additional features
+
+-- Ensure required extension for UUID generation
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Base users table (if it doesn't already exist)
+CREATE TABLE IF NOT EXISTS public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  auth_id uuid,
+  role text NOT NULL DEFAULT 'talent',
+  full_name text,
+  email text NOT NULL UNIQUE,
+  phone text,
+  location text,
+  professional_summary text,
+  experience_level text,
+  current_position text,
+  years_of_experience integer DEFAULT 0,
+  hourly_rate numeric,
+  availability text DEFAULT 'full-time',
+  skills text[] DEFAULT '{}',
+  preferred_work_type text[] DEFAULT ARRAY['remote'],
+  education jsonb DEFAULT '{}',
+  certifications text[] DEFAULT '{}',
+  linkedin_url text,
+  github_url text,
+  portfolio_website text,
+  preferred_language text DEFAULT 'en',
+  password_hash text,
+  profile_picture_url text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
 
 -- Add recruiter-specific fields to users table
 ALTER TABLE public.users 

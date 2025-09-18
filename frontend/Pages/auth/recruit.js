@@ -16,19 +16,12 @@ export default function RecruitAuth(){
     setLoading(true);
     try{
       if (mode === 'signup'){
-        await signup({ email, password, name });
+        await signup({ email, password, name, role: 'recruiter' });
         await login({ email, password });
-        // after login, set role=recruiter
-        const headers = getAuthHeaders();
-        const auth = JSON.parse(localStorage.getItem('auth')||'{}');
-        const userId = auth?.user?.id;
-        if (userId){
-          await fetch(`/api/users/${userId}`, { method: 'PUT', headers, body: JSON.stringify({ role: 'recruiter' }) });
-        }
-        window.location.href = '/recruiter/dashboard';
+        window.location.href = '/';
       } else {
         await login({ email, password });
-        window.location.href = '/recruiter/dashboard';
+        window.location.href = '/';
       }
     }catch(err){
       setError(err?.message || 'Failed');

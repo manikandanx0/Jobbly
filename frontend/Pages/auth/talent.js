@@ -15,12 +15,12 @@ export default function TalentAuth(){
     setLoading(true);
     try{
       if (mode === 'signup'){
-        await signup({ email, password, name });
+        await signup({ email, password, name, role: 'talent' });
         await login({ email, password });
-        window.location.href = '/talent/dashboard';
+        window.location.href = '/';
       } else {
         await login({ email, password });
-        window.location.href = '/talent/dashboard';
+        window.location.href = '/';
       }
     }catch(err){
       setError(err?.message || 'Failed');

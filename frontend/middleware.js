@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
 // JWT secret - should match your backend
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -17,7 +17,7 @@ const protectedRoutes = [
 // Auth routes that should redirect if already logged in
 const authRoutes = ['/auth/talent', '/auth/recruit'];
 
-export function middleware(request) {
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
   
   // Get token from cookies
@@ -33,17 +33,17 @@ export function middleware(request) {
     pathname === route || pathname.startsWith(route + '/')
   );
 
-  // Verify JWT token
+  // Verify JWT token (Edge-compatible)
   let isAuthenticated = false;
   let user = null;
-  
+
   if (token) {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const enc = new TextEncoder();
+      const { payload } = await jwtVerify(token, enc.encode(JWT_SECRET));
       isAuthenticated = true;
-      user = decoded;
+      user = payload;
     } catch (error) {
-      // Token is invalid or expired
       isAuthenticated = false;
     }
   }
