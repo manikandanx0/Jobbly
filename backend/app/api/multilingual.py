@@ -116,29 +116,83 @@ def get_supported_languages():
 
 @multilingual_bp.route('/applications', methods=['GET', 'POST', 'DELETE'])
 def applications():
-    """Store candidate internship applications per-user to mark 'already applied' in frontend."""
+    """Handle job/internship applications with new schema."""
     try:
         client = get_supabase_client()
         if request.method == 'POST':
             data = request.get_json() or {}
-            internship_id = data.get('internshipId')
-            user_id = data.get('userId')
-            if not internship_id or not user_id:
-                return jsonify({'error': 'internshipId and userId required'}), 400
-            res = client.table('applications').insert({ 'internship_id': internship_id, 'user_id': user_id }).execute()
+            internship_id = data.get('internshipId') or data.get('internship_id')
+            job_id = data.get('jobId') or data.get('job_id')
+            user_id = data.get('userId') or data.get('user_id')
+            
+            if not user_id:
+                return jsonify({'error': 'userId required'}), 400
+            
+            if not internship_id and not job_id:
+                return jsonify({'error': 'internshipId or jobId required'}), 400
+            
+            # Determine job type
+            job_type = 'internship' if internship_id else 'freelance'
+            
+            application_data = {
+                'talent_id': user_id,
+                'job_type': job_type,
+                'status': 'pending'
+            }
+            
+            if internship_id:
+                application_data['internship_id'] = internship_id
+            if job_id:
+                application_data['job_id'] = job_id
+                
+            # Add optional fields
+            if 'cover_letter' in data:
+                application_data['cover_letter'] = data['cover_letter']
+            if 'resume_url' in data:
+                application_data['resume_url'] = data['resume_url']
+            if 'portfolio_url' in data:
+                application_data['portfolio_url'] = data['portfolio_url']
+                
+            res = client.table('applications').insert(application_data).execute()
             return jsonify({'ok': True, 'item': (res.data or [{}])[0]}), 201
+            
         if request.method == 'DELETE':
-            internship_id = request.args.get('internshipId')
-            user_id = request.args.get('userId')
-            res = client.table('applications').delete().eq('internship_id', internship_id).eq('user_id', user_id).execute()
+            internship_id = request.args.get('internshipId') or request.args.get('internship_id')
+            job_id = request.args.get('jobId') or request.args.get('job_id')
+            user_id = request.args.get('userId') or request.args.get('user_id')
+            
+            if not user_id:
+                return jsonify({'error': 'userId required'}), 400
+                
+            q = client.table('applications').delete().eq('talent_id', user_id)
+            
+            if internship_id:
+                q = q.eq('internship_id', internship_id)
+            elif job_id:
+                q = q.eq('job_id', job_id)
+            else:
+                return jsonify({'error': 'internshipId or jobId required'}), 400
+                
+            res = q.execute()
             return jsonify({'ok': True, 'count': len(res.data or [])}), 200
+            
         # GET
-        user_id = request.args.get('userId')
+        user_id = request.args.get('userId') or request.args.get('user_id')
+        job_type = request.args.get('jobType') or request.args.get('job_type')
+        status = request.args.get('status')
+        
         q = client.table('applications').select('*')
+        
         if user_id:
-            q = q.eq('user_id', user_id)
+            q = q.eq('talent_id', user_id)
+        if job_type:
+            q = q.eq('job_type', job_type)
+        if status:
+            q = q.eq('status', status)
+            
         res = q.execute()
         return jsonify({ 'items': res.data or [] }), 200
+        
     except Exception as e:
         logging.error(f"applications error: {str(e)}")
         return jsonify({'error': 'applications failed'}), 500

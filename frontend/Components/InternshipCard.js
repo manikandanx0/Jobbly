@@ -15,15 +15,40 @@ export default function InternshipCard({ item }) {
       notify('Please login to apply', 'error');
       return;
     }
-    await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ internship_id: item.id, user_id: auth.user.id }) });
+    
+    const applicationData = {
+      internship_id: item.id,
+      user_id: auth.user.id,
+      cover_letter: form.cover
+    };
+    
+    await fetch('/api/applications', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(applicationData) 
+    });
     notify('Applied successfully', 'success');
     setShowApply(false);
     setForm({ name: '', email: '', cover: '' });
   }
   async function toggleBookmark(){
-    const r = await fetch('/api/bookmarks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ internshipId: item.id }) });
+    const auth = getAuth();
+    if (!auth?.user?.id){
+      notify('Please login to save jobs', 'error');
+      return;
+    }
+    
+    const r = await fetch('/api/saved-jobs', { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ 
+        internship_id: item.id, 
+        user_id: auth.user.id,
+        job_type: 'internship'
+      }) 
+    });
     const d = await r.json();
-    notify(d.added ? 'Saved' : 'Removed', 'success');
+    notify(d.ok ? 'Saved' : 'Failed to save', d.ok ? 'success' : 'error');
   }
   async function share(){
     const url = location.origin + '/internships/' + item.id;

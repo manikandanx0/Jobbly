@@ -50,12 +50,37 @@ class TranslationService:
             return 'en'  # Default to English for short text
         
         try:
+            # First try enhanced Indian language detection
+            from app.core.indian_languages import detect_indian_language
+            indian_detected = detect_indian_language(text)
+            
+            # If Indian language detected with high confidence, use it
+            if indian_detected != 'en':
+                logger.info(f"Indian language detected: {indian_detected} for text: {text[:30]}...")
+                return indian_detected
+            
+            # Fallback to langdetect for non-Indian languages
             detected = detect(text)
-            # Keep raw detected code for tests (e.g., 'es', 'fr', 'de', 'pt')
-            return detected
+            
+            # Map common misdetections
+            lang_mapping = {
+                'ne': 'hi',  # Nepali often misdetected as Hindi
+                'ur': 'hi',  # Urdu sometimes misdetected as Hindi
+                'pa': 'hi',  # Punjabi sometimes misdetected as Hindi
+                'sq': 'en',  # Albanian often misdetected for English names
+                'no': 'en',  # Norwegian sometimes misdetected for English
+                'da': 'en',  # Danish sometimes misdetected for English
+            }
+            
+            mapped_lang = lang_mapping.get(detected, detected)
+            logger.info(f"Langdetect result: {detected} -> mapped to: {mapped_lang}")
+            return mapped_lang
                 
         except LangDetectException:
             logger.warning(f"Could not detect language for text: {text[:50]}...")
+            return 'en'  # Default to English
+        except Exception as e:
+            logger.error(f"Language detection error: {str(e)}")
             return 'en'  # Default to English
     
     def translate_text(self, text: str, source_lang: str, target_lang: str) -> Optional[str]:
@@ -73,7 +98,10 @@ class TranslationService:
         try:
             # Use Google Translate for Indian languages (better support)
             if self.primary_service == 'google' and self.google_translator:
-                translated = self.google_translator(source=source_lang, target=target_lang).translate(text)
+                # Create a new translator instance for each translation
+                translator = self.google_translator(source=source_lang, target=target_lang)
+                translated = translator.translate(text)
+                logger.info(f"Google Translate: {source_lang} -> {target_lang}: '{text}' -> '{translated}'")
                 return translated
             
             # Fallback to DeepL for English and supported languages
@@ -97,7 +125,8 @@ class TranslationService:
                     return result.text
                 else:
                     if self.google_translator:
-                        return self.google_translator(source=source_lang, target=target_lang).translate(text)
+                        translator = self.google_translator(source=source_lang, target=target_lang)
+                        return translator.translate(text)
             
             return text  # Return original if no translation possible
             

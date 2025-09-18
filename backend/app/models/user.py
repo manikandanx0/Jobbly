@@ -23,6 +23,22 @@ class UserCreate(BaseModel):
     linkedin_url: Optional[str] = None
     github_url: Optional[str] = None
     portfolio_website: Optional[str] = None
+    
+    # Talent-specific fields
+    resume_url: Optional[str] = None
+    cover_letter_template: Optional[str] = None
+    job_preferences: Optional[Dict[str, Any]] = {}
+    notification_preferences: Optional[Dict[str, Any]] = {"email": True, "push": True}
+    
+    # Recruiter-specific fields
+    company_name: Optional[str] = None
+    company_website: Optional[str] = None
+    company_size: Optional[str] = None  # 'startup', 'small', 'medium', 'large', 'enterprise'
+    company_industry: Optional[str] = None
+    company_logo_url: Optional[str] = None
+    company_description: Optional[str] = None
+    recruiter_position: Optional[str] = None
+    verified_recruiter: Optional[bool] = False
 
 class UserUpdate(BaseModel):
     """Model for updating user information"""
@@ -42,6 +58,22 @@ class UserUpdate(BaseModel):
     linkedin_url: Optional[str] = None
     github_url: Optional[str] = None
     portfolio_website: Optional[str] = None
+    
+    # Talent-specific fields
+    resume_url: Optional[str] = None
+    cover_letter_template: Optional[str] = None
+    job_preferences: Optional[Dict[str, Any]] = None
+    notification_preferences: Optional[Dict[str, Any]] = None
+    
+    # Recruiter-specific fields
+    company_name: Optional[str] = None
+    company_website: Optional[str] = None
+    company_size: Optional[str] = None
+    company_industry: Optional[str] = None
+    company_logo_url: Optional[str] = None
+    company_description: Optional[str] = None
+    recruiter_position: Optional[str] = None
+    verified_recruiter: Optional[bool] = None
 
 class UserResponse(BaseModel):
     """Model for user response data"""
@@ -64,5 +96,23 @@ class UserResponse(BaseModel):
     linkedin_url: Optional[str]
     github_url: Optional[str]
     portfolio_website: Optional[str]
+    
+    # Talent-specific fields
+    resume_url: Optional[str]
+    cover_letter_template: Optional[str]
+    job_preferences: Optional[Dict[str, Any]]
+    notification_preferences: Optional[Dict[str, Any]]
+    profile_completion_percentage: Optional[int]
+    
+    # Recruiter-specific fields
+    company_name: Optional[str]
+    company_website: Optional[str]
+    company_size: Optional[str]
+    company_industry: Optional[str]
+    company_logo_url: Optional[str]
+    company_description: Optional[str]
+    recruiter_position: Optional[str]
+    verified_recruiter: Optional[bool]
+    
     created_at: datetime
     updated_at: datetime
