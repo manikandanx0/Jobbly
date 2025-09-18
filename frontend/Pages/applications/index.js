@@ -3,13 +3,17 @@ import Layout from '@/components/Layout';
 import SEO from '@/components/SEO';
 import Card from '@/components/Card';
 import Link from 'next/link';
+import { getAuth } from '@/utils/authStub';
 
 export default function Applications(){
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    fetch('/api/applications').then(r=>r.json()).then(d=> setItems(d.items || [])).finally(()=>setLoading(false));
+    const auth = getAuth();
+    const userId = auth?.user?.id;
+    const url = userId ? `/api/applications?userId=${encodeURIComponent(userId)}` : '/api/applications';
+    fetch(url).then(r=>r.json()).then(d=> setItems(d.items || [])).finally(()=>setLoading(false));
   }, []);
 
   return (
@@ -23,9 +27,9 @@ export default function Applications(){
           {items.map(a => (
             <li key={a.id}>
               <Card variant="glass" className="p-4">
-                <div className="text-sm text-textSecondary">Applied at {new Date(a.at).toLocaleString()}</div>
-                <div className="font-medium">{a.applicant?.name} ({a.applicant?.email})</div>
-                <Link href={`/internships/${a.internshipId}`} className="text-sm text-primary hover:underline">View internship</Link>
+                <div className="text-sm text-textSecondary">Applied at {new Date(a.created_at || a.at || Date.now()).toLocaleString()}</div>
+                <div className="font-medium">Application</div>
+                <Link href={`/internships/${a.internship_id || a.internshipId}`} className="text-sm text-primary hover:underline">View internship</Link>
               </Card>
             </li>
           ))}

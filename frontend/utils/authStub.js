@@ -1,10 +1,13 @@
 export async function login({ email, password, psid }) {
-  const res = await fetch('/api/auth/login', {
+  const res = await fetch('/api/users/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, psid })
   });
-  if (!res.ok) throw new Error('Invalid credentials');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Invalid credentials');
+  }
   const data = await res.json();
   if (typeof window !== 'undefined') {
     window.localStorage.setItem('auth', JSON.stringify({ token: data.access_token, user: data.user }));

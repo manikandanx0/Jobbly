@@ -155,7 +155,7 @@ class IndianLanguageDetector:
             return winner[0]
         
         # Check if it's likely English (ASCII only)
-        if re.match(r'^[a-zA-Z0-9\s\.,!?\-()]+, text.strip()):
+        if re.match(r'^[a-zA-Z0-9\s\.,!?\-()]+$', text.strip()):
             return 'en'
         
         # Final fallback

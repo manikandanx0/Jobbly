@@ -24,5 +24,15 @@
   "edit_profile": "Edit Profile",
   "your_profile": "Your Profile",
   "recruiter_profile": "Recruiter Profile",
-  "recruiter_dashboard": "Recruiter Dashboard"
+  "recruiter_dashboard": "Recruiter Dashboard",
+  "login": "Login",
+  "email": "Email",
+  "email_placeholder": "Enter your email",
+  "password": "Password",
+  "remember_me": "Remember me",
+  "forgot_password": "Forgot password?",
+  "signing_in": "Signing in...",
+  "no_account": "Don't have an account?",
+  "sign_up": "Sign Up",
+  "invalid_credentials": "Invalid credentials"
 }

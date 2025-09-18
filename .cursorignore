@@ -1,5 +1,4 @@
 .env
-.env.example
 .gitignore
 .venv
 node_modules

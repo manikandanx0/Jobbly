@@ -12,12 +12,6 @@ const inter = Inter({ subsets: ['latin'] });
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
-  useEffect(()=>{
-    const isAuthRoute = router.pathname.startsWith('/auth/');
-    if (!isAuthRoute && !isLoggedIn()){
-      router.replace('/auth/login');
-    }
-  }, [router.pathname]);
   return (
     <I18nProvider>
       <ToastProvider>

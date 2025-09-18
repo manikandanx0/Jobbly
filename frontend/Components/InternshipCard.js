@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useToast } from '@/components/Toast';
 import { useState } from 'react';
+import { getAuth } from '@/utils/authStub';
 import { UserIcon, MicIcon, UserOutlineIcon, MailIcon, PaperclipIcon, DocumentTextIcon } from '@/components/icons';
 import Card from '@/components/Card';
 
@@ -9,7 +10,12 @@ export default function InternshipCard({ item }) {
   const [showApply, setShowApply] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', cover: '' });
   async function apply(){
-    await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ internshipId: item.id, applicant: form }) });
+    const auth = getAuth();
+    if (!auth?.user?.id){
+      notify('Please login to apply', 'error');
+      return;
+    }
+    await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ internship_id: item.id, user_id: auth.user.id }) });
     notify('Applied successfully', 'success');
     setShowApply(false);
     setForm({ name: '', email: '', cover: '' });

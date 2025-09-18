@@ -2,6 +2,7 @@
 # backend/app/api/users.py
 from flask import Blueprint, request, jsonify
 from app.models.user import UserCreate, UserUpdate
+from pydantic import EmailStr
 from app.core.services import user_service
 from pydantic import ValidationError
 import logging
@@ -43,13 +44,60 @@ def signup_user():
         name = data.get('name')
         if not email or not password:
             return jsonify({'error': 'Email and password required'}), 400
+        # Basic email format validation
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            return jsonify({'error': 'Invalid email address'}), 400
+        if len(password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
 
         client = get_supabase_client()
         res = client.auth.sign_up({ 'email': email, 'password': password, 'options': { 'data': { 'full_name': name } } })
-        return jsonify({ 'user': { 'id': res.user.id if res.user else None, 'email': email } }), 201
+        # Supabase may require email confirmation; return a friendly message
+        user_id = getattr(res.user, 'id', None) if getattr(res, 'user', None) else None
+        
+        # Create user record in users table with translation support
+        if user_id:
+            try:
+                from app.core.translation import detect_and_translate
+                
+                # Create user data for our users table
+                user_data = {
+                    'id': user_id,
+                    'role': 'talent',  # Default role
+                    'full_name': name or '',
+                    'email': email,
+                    'created_at': 'now()',
+                    'updated_at': 'now()'
+                }
+                
+                # If name is provided, translate it
+                if name:
+                    source_lang, translations = detect_and_translate(name, 'full_name')
+                    user_data['full_name_source_language'] = source_lang
+                    user_data['full_name_translations'] = translations
+                
+                # Insert into users table
+                user_result = client.table('users').insert(user_data).execute()
+                print(f"Created user record: {user_result.data}")
+                
+            except Exception as e:
+                print(f"Warning: Could not create user record: {e}")
+                # Don't fail signup if user record creation fails
+        
+        return jsonify({ 'message': 'Signup successful. Please check your email to confirm your account.', 'user': { 'id': user_id, 'email': email } }), 201
     except Exception as e:
-        logging.error(f"Signup error: {str(e)}")
-        return jsonify({'error': 'Signup failed'}), 500
+        error_msg = str(e)
+        logging.error(f"Signup error: {error_msg}")
+        
+        # Handle specific Supabase auth errors
+        if "email" in error_msg.lower() and "invalid" in error_msg.lower():
+            return jsonify({'error': 'Email address is invalid or not allowed. Please try a different email address.'}), 400
+        elif "password" in error_msg.lower():
+            return jsonify({'error': 'Password does not meet requirements. Please use a stronger password.'}), 400
+        elif "already" in error_msg.lower() and "registered" in error_msg.lower():
+            return jsonify({'error': 'An account with this email already exists. Please try logging in instead.'}), 400
+        else:
+            return jsonify({'error': f'Signup failed: {error_msg}'}), 400
 @users_bp.route('/<user_id>', methods=['GET'])
 def get_user(user_id):
     """Get user by ID"""
@@ -158,8 +206,18 @@ def login_user():
             }
         }), 200
     except Exception as e:
-        logging.error(f"Login error: {str(e)}")
-        return jsonify({'error': 'Login failed'}), 500
+        error_msg = str(e)
+        logging.error(f"Login error: {error_msg}")
+        
+        # Handle specific Supabase auth errors
+        if "invalid" in error_msg.lower() and ("credentials" in error_msg.lower() or "password" in error_msg.lower()):
+            return jsonify({'error': 'Invalid email or password. Please check your credentials and try again.'}), 401
+        elif "email" in error_msg.lower() and "not" in error_msg.lower() and "confirmed" in error_msg.lower():
+            return jsonify({'error': 'Please check your email and click the confirmation link before logging in.'}), 401
+        elif "too many" in error_msg.lower() and "requests" in error_msg.lower():
+            return jsonify({'error': 'Too many login attempts. Please wait a moment and try again.'}), 429
+        else:
+            return jsonify({'error': f'Login failed: {error_msg}'}), 401
 
 @users_bp.route('/me', methods=['GET'])
 def get_me():

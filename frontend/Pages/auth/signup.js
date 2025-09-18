@@ -17,9 +17,12 @@ export default function Signup(){
     setLoading(true);
     try{
       const res = await fetch('/api/users/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, name }) });
-      if (!res.ok) throw new Error('Signup failed');
+      if (!res.ok){
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data?.error || 'Signup failed');
+      }
       window.location.href = '/auth/login';
-    }catch(err){ setError('Signup failed'); }
+    }catch(err){ setError(err?.message || 'Signup failed'); }
     finally{ setLoading(false); }
   }
 
