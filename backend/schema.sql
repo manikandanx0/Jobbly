@@ -23,6 +23,18 @@ ADD COLUMN IF NOT EXISTS job_preferences jsonb DEFAULT '{}',
 ADD COLUMN IF NOT EXISTS notification_preferences jsonb DEFAULT '{"email": true, "push": true}',
 ADD COLUMN IF NOT EXISTS profile_completion_percentage integer DEFAULT 0;
 
+-- Add multilingual and auth-fallback fields to users table
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS professional_summary_translations jsonb,
+ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'en',
+ADD COLUMN IF NOT EXISTS professional_summary_source_language text,
+ADD COLUMN IF NOT EXISTS password_hash text;
+
+-- Name multilingual fields used at signup
+ALTER TABLE public.users
+ADD COLUMN IF NOT EXISTS full_name_translations jsonb,
+ADD COLUMN IF NOT EXISTS full_name_source_language text;
+
 -- Create applications table to track job/internship applications
 CREATE TABLE IF NOT EXISTS public.applications (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -107,6 +119,120 @@ CREATE TABLE IF NOT EXISTS public.company_profiles (
   CONSTRAINT company_profiles_recruiter_id_fkey FOREIGN KEY (recruiter_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 
+-- Create freelance_jobs table (recruiter-owned gigs)
+CREATE TABLE IF NOT EXISTS public.freelance_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  recruiter_id uuid,
+  title text NOT NULL,
+  client_company text,
+  description text NOT NULL,
+  project_scope text NOT NULL CHECK (project_scope = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text])),
+  deliverables text[],
+  budget_type text NOT NULL CHECK (budget_type = ANY (ARRAY['fixed'::text, 'hourly'::text])),
+  budget_min numeric,
+  budget_max numeric,
+  estimated_hours integer,
+  deadline timestamp with time zone,
+  project_duration text,
+  skills_required text[] NOT NULL,
+  experience_level text DEFAULT 'any'::text CHECK (experience_level = ANY (ARRAY['beginner'::text, 'intermediate'::text, 'expert'::text, 'any'::text])),
+  portfolio_required boolean DEFAULT false,
+  location text,
+  work_type text DEFAULT 'remote'::text CHECK (work_type = ANY (ARRAY['remote'::text, 'hybrid'::text, 'onsite'::text])),
+  communication_preference text[],
+  category text NOT NULL,
+  subcategory text,
+  application_deadline timestamp with time zone,
+  application_process text,
+  client_info jsonb,
+  project_examples text[],
+  special_requirements text,
+  status text DEFAULT 'open'::text CHECK (status = ANY (ARRAY['open'::text, 'in-progress'::text, 'completed'::text, 'cancelled'::text])),
+  posted_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  title_translations jsonb,
+  description_translations jsonb,
+  title_source_language text,
+  description_source_language text,
+  CONSTRAINT freelance_jobs_pkey PRIMARY KEY (id),
+  CONSTRAINT freelance_jobs_recruiter_id_fkey FOREIGN KEY (recruiter_id) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+-- Create internships table (recruiter-owned internships)
+CREATE TABLE IF NOT EXISTS public.internships (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  recruiter_id uuid,
+  title text NOT NULL,
+  company text NOT NULL,
+  company_logo_url text,
+  description text NOT NULL,
+  responsibilities text[],
+  learning_outcomes text[],
+  location text,
+  work_type text DEFAULT 'onsite'::text CHECK (work_type = ANY (ARRAY['remote'::text, 'hybrid'::text, 'onsite'::text])),
+  stipend_min integer,
+  stipend_max integer,
+  duration_months integer NOT NULL,
+  hours_per_week integer DEFAULT 40,
+  required_skills text[] NOT NULL,
+  preferred_skills text[],
+  education_level text CHECK (education_level = ANY (ARRAY['high-school'::text, 'diploma'::text, 'bachelors'::text, 'masters'::text, 'any'::text])),
+  experience_required text CHECK (experience_required = ANY (ARRAY['none'::text, '0-1'::text, '1-2'::text, '2+'::text])),
+  application_deadline timestamp with time zone,
+  start_date timestamp with time zone,
+  positions_available integer DEFAULT 1,
+  application_process text,
+  company_website text,
+  company_size text CHECK (company_size = ANY (ARRAY['startup'::text, 'small'::text, 'medium'::text, 'large'::text, 'enterprise'::text])),
+  industry text,
+  status text DEFAULT 'open'::text CHECK (status = ANY (ARRAY['open'::text, 'closed'::text, 'paused'::text])),
+  posted_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  title_translations jsonb,
+  description_translations jsonb,
+  title_source_language text,
+  description_source_language text,
+  CONSTRAINT internships_pkey PRIMARY KEY (id),
+  CONSTRAINT internships_recruiter_id_fkey FOREIGN KEY (recruiter_id) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+-- Create portfolios table (owned by talents in users table)
+CREATE TABLE IF NOT EXISTS public.portfolios (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  talent_id uuid,
+  bio text,
+  professional_headline text,
+  projects jsonb,
+  work_experience jsonb,
+  resume_url text,
+  cover_letter_url text,
+  project_images jsonb,
+  testimonials jsonb,
+  achievements text[],
+  languages text[],
+  updated_at timestamp with time zone DEFAULT now(),
+  bio_translations jsonb,
+  professional_headline_translations jsonb,
+  bio_source_language text,
+  professional_headline_source_language text,
+  CONSTRAINT portfolios_pkey PRIMARY KEY (id),
+  CONSTRAINT portfolios_talent_id_fkey FOREIGN KEY (talent_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+-- Create translation_logs table
+CREATE TABLE IF NOT EXISTS public.translation_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  content_type text NOT NULL,
+  content_id uuid NOT NULL,
+  source_language text NOT NULL,
+  target_language text NOT NULL,
+  original_text text NOT NULL,
+  translated_text text NOT NULL,
+  translation_service text DEFAULT 'deepl'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT translation_logs_pkey PRIMARY KEY (id)
+);
+
 -- Add indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
@@ -145,6 +271,20 @@ BEGIN
     ) THEN
         CREATE POLICY "Users can update own profile" ON public.users
           FOR UPDATE USING (auth.uid() = auth_id);
+    END IF;
+END $$;
+
+-- Allow authenticated users to insert their own profile row
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'users' AND policyname = 'Users can insert own profile'
+    ) THEN
+        CREATE POLICY "Users can insert own profile" ON public.users
+          FOR INSERT WITH CHECK (
+            auth.uid() = auth_id OR auth.uid() = id
+          );
     END IF;
 END $$;
 
@@ -256,6 +396,10 @@ BEGIN
     END IF;
 END $$;
 
+-- Ensure old versions are removed to avoid parameter-name conflicts
+DROP FUNCTION IF EXISTS public.calculate_talent_profile_completion(uuid);
+DROP FUNCTION IF EXISTS public.calculate_recruiter_profile_completion(uuid);
+
 -- Functions to calculate profile completion
 CREATE OR REPLACE FUNCTION calculate_talent_profile_completion(user_id uuid)
 RETURNS integer AS $$
@@ -337,6 +481,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Recreate trigger idempotently
+DROP TRIGGER IF EXISTS trigger_update_user_profile_completion ON public.users;
 CREATE TRIGGER trigger_update_user_profile_completion
     BEFORE UPDATE ON public.users
     FOR EACH ROW

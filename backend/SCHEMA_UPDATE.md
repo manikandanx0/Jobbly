@@ -26,6 +26,14 @@ Added new fields for better role separation:
 - `recruiter_position` - Recruiter's position in company
 - `verified_recruiter` - Boolean for recruiter verification status
 
+Additional cross-cutting fields:
+- `professional_summary_translations` - JSON translations of the summary
+- `preferred_language` - User's preferred UI/content language (default `en`)
+- `professional_summary_source_language` - Detected language of summary
+- `password_hash` - Optional fallback auth hash for dev environments
+- `full_name_translations` - JSON translations of the full name
+- `full_name_source_language` - Detected language of full name
+
 ### New Tables
 
 #### `applications` table
@@ -54,6 +62,18 @@ Tracks saved/bookmarked jobs:
 - `job_type` - Either 'internship' or 'freelance'
 - `saved_at` - Save timestamp
 - `notes` - User notes about the saved job
+
+#### `freelance_jobs` table
+Recruiter-created freelance gigs with multilingual fields and rich constraints.
+
+#### `internships` table
+Recruiter-created internships with multilingual fields and typical filters.
+
+#### `portfolios` table
+Talent-owned portfolio data (now references `users.id` instead of a separate `talents` table).
+
+#### `translation_logs` table
+Audit trail of translations performed.
 
 #### `company_profiles` table
 Detailed company information for recruiters:
@@ -137,6 +157,8 @@ All tables have RLS policies for role-based access control:
 - Users can only access their own data
 - Recruiters can view applications for their posted jobs
 - Public access to portfolios (read-only)
+
+Note: All new tables (`freelance_jobs`, `internships`, `portfolios`, `translation_logs`) should have RLS rules added as needed. The base schema enables RLS on `users`, `applications`, `saved_jobs`, `company_profiles`, and `portfolios`.
 
 ## Migration Instructions
 

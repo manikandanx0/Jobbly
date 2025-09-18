@@ -94,3 +94,5 @@ def require_user_id(f):
         return f(*args, **kwargs)
     
     return decorated_function
+
+

@@ -6,7 +6,7 @@ from pydantic import EmailStr
 from app.core.services import user_service
 from pydantic import ValidationError
 import logging
-from app.core.database import get_supabase_client
+from app.core.database import get_supabase_client, get_admin_client
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import os
@@ -60,11 +60,12 @@ def signup_user():
             logging.warning(f"Supabase auth sign_up failed, attempting table signup fallback: {e}")
             # Fallback: store user with password hash in users table
             try:
-                exists = client.table('users').select('id').eq('email', email).limit(1).execute()
+                admin = get_admin_client()
+                exists = admin.table('users').select('id').eq('email', email).limit(1).execute()
                 if exists.data:
                     return jsonify({'error': 'An account with this email already exists.'}), 400
                 password_hash = generate_password_hash(password)
-                inserted = client.table('users').insert({
+                inserted = admin.table('users').insert({
                     'email': email,
                     'full_name': name or '',
                     'password_hash': password_hash,
@@ -86,6 +87,7 @@ def signup_user():
                 # Create user data for our users table
                 user_data = {
                     'id': user_id,
+                    'auth_id': user_id,
                     'role': 'talent',  # Default role
                     'full_name': name or '',
                     'email': email,
@@ -100,7 +102,8 @@ def signup_user():
                     user_data['full_name_translations'] = translations
                 
                 # Insert into users table
-                user_result = client.table('users').insert(user_data).execute()
+                admin = get_admin_client()
+                user_result = admin.table('users').insert(user_data).execute()
                 print(f"Created user record: {user_result.data}")
                 
             except Exception as e:
