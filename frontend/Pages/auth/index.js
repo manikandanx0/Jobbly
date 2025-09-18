@@ -33,7 +33,7 @@ export default function Auth() {
     setLoading(true);
     try {
       await login({ email, password, psid });
-      window.location.href = '/';
+      window.location.href = '/auth/roles';
     } catch (err) {
       setError(err?.message || t('invalid_credentials'));
     } finally {
@@ -73,7 +73,7 @@ export default function Auth() {
       
       // Auto-login after successful signup
       await login({ email, password });
-      window.location.href = '/';
+      window.location.href = '/auth/roles';
     } catch (err) {
       setError(err?.message || 'Signup failed');
     } finally {
